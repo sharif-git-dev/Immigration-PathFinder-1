@@ -1,0 +1,546 @@
+/**
+ * Complete Survey Questions Configuration
+ * Designed with intuitive multiple-choice chips, fast clicking, and smart conditional branches.
+ */
+
+import type { Question, SectionId } from './types';
+import type { Profile } from '../engine/types';
+import { COUNTRIES } from '../data/countries';
+
+export interface SectionMeta {
+  id: SectionId;
+  title: string;
+  description: string;
+  icon: string;
+}
+
+export const SECTIONS: SectionMeta[] = [
+  { id: 'goals', title: 'Your Goals', description: 'What are you looking to do in Canada?', icon: '🎯' },
+  { id: 'about', title: 'Location & Nationality', description: 'Where you live and your legal status.', icon: '🌍' },
+  { id: 'family', title: 'Family & Relatives', description: 'Marital status and family ties in Canada.', icon: '👨‍👩‍👧‍👦' },
+  { id: 'education', title: 'Education & Study', description: 'Degrees and credentials earned.', icon: '🎓' },
+  { id: 'language', title: 'Languages', description: 'English and French proficiency.', icon: '🗣️' },
+  { id: 'work', title: 'Work & Experience', description: 'Your occupation, skills, and work history.', icon: '💼' },
+  { id: 'money', title: 'Job Offer & Finances', description: 'Canadian job offers and settlement funds.', icon: '💰' },
+  { id: 'protection', title: 'Protection & Special Circumstances', description: 'Refugee protection, displacement, and special pathways.', icon: '🛡️' },
+  { id: 'background', title: 'Admissibility & History', description: 'Prior visas, travel history, and admissibility.', icon: '📋' },
+];
+
+export const SURVEY_QUESTIONS: Question[] = [
+  // ──────────────────────── 1. GOALS ────────────────────────
+  {
+    id: 'goals',
+    section: 'goals',
+    title: 'What is your primary goal or reason for going to Canada?',
+    help: 'Select all that apply. This helps us filter and highlight the most suitable programs for you.',
+    type: 'multi',
+    options: [
+      { value: 'permanent', label: 'Immigrate Permanently (PR)', hint: 'Live, work, and build your life in Canada permanently' },
+      { value: 'work', label: 'Work Temporarily', hint: 'Work permit, working holiday, or employer transfer' },
+      { value: 'study', label: 'Study in Canada', hint: 'Attend college, university, or short-term training' },
+      { value: 'join_family', label: 'Join or Reunite with Family', hint: 'Be sponsored by spouse, parent, child, or family member' },
+      { value: 'visit', label: 'Visit / Tourism / Business', hint: 'Vacation, explore, attend conferences, or visit friends' },
+      { value: 'visit_family', label: 'Long-term Family Visit (Super Visa)', hint: 'Parents/grandparents visiting for up to 5 continuous years' },
+      { value: 'protection', label: 'Refugee Protection / Asylum', hint: 'Seeking safety from conflict, persecution, or displacement' },
+      { value: 'start_business', label: 'Start a Business / Invest', hint: 'Start-Up Visa or entrepreneurship' },
+      { value: 'citizenship', label: 'Claim Canadian Citizenship', hint: 'By descent through a Canadian parent or naturalization' },
+    ],
+  },
+  {
+    id: 'preferredProvinces',
+    section: 'goals',
+    title: 'Do you have a preferred Canadian province or territory?',
+    help: 'Provinces have their own unique immigration programs and nominee quotas.',
+    type: 'multi',
+    options: [
+      { value: 'any', label: 'Anywhere in Canada / Open to any province' },
+      { value: 'ON', label: 'Ontario (Toronto, Ottawa)' },
+      { value: 'BC', label: 'British Columbia (Vancouver, Victoria)' },
+      { value: 'AB', label: 'Alberta (Calgary, Edmonton)' },
+      { value: 'QC', label: 'Quebec (Montreal, Quebec City)' },
+      { value: 'MB', label: 'Manitoba (Winnipeg)' },
+      { value: 'SK', label: 'Saskatchewan (Saskatoon, Regina)' },
+      { value: 'NS', label: 'Nova Scotia (Halifax)' },
+      { value: 'NB', label: 'New Brunswick' },
+      { value: 'NL', label: 'Newfoundland and Labrador' },
+      { value: 'PE', label: 'Prince Edward Island' },
+    ],
+    exclusive: ['any'],
+  },
+
+  // ──────────────────────── 2. ABOUT & STATUS ────────────────────────
+  {
+    id: 'age',
+    section: 'about',
+    title: 'How old are you?',
+    help: 'Age directly impacts points for Express Entry, Provincial streams, and IEC youth mobility.',
+    type: 'number',
+    min: 0,
+    max: 100,
+  },
+  {
+    id: 'citizenships',
+    section: 'about',
+    title: 'What country or countries are you a citizen of?',
+    help: 'If you have dual nationality, select both. Select "Stateless" if you have no recognized nationality.',
+    type: 'countries',
+  },
+  {
+    id: 'residenceCountry',
+    section: 'about',
+    title: 'Where do you currently live?',
+    help: 'Select the country where you currently reside (choose Canada if you are already inside Canada).',
+    type: 'country',
+  },
+  {
+    id: 'residenceStatus',
+    section: 'about',
+    title: 'What is your legal status in the country where you currently live?',
+    help: 'Crucial for determining visa options, third-country application eligibility, and refugee/displaced person pathways.',
+    type: 'single',
+    showIf: (p) => p.residenceCountry !== undefined && p.residenceCountry !== 'CA',
+    options: [
+      { value: 'citizen', label: 'Citizen', hint: 'You are living in your country of citizenship' },
+      { value: 'permanent_resident', label: 'Permanent Resident / Indefinite Residence' },
+      { value: 'temporary_protection', label: 'Temporary Protection / Displaced Person', hint: 'e.g. Syrians under Temporary Protection in Türkiye (Kimlik), Ukrainians in EU' },
+      { value: 'refugee_recognized', label: 'Recognized Refugee (by UNHCR or Host Government)' },
+      { value: 'asylum_pending', label: 'Asylum Seeker / International Protection Pending' },
+      { value: 'temp_work', label: 'Temporary Work Visa / Residence' },
+      { value: 'temp_study', label: 'Student Visa / Residence' },
+      { value: 'temp_visitor', label: 'Visitor / Tourist Visa' },
+      { value: 'no_status', label: 'Undocumented / No Legal Status' },
+    ],
+  },
+  {
+    id: 'canadaStatus',
+    section: 'about',
+    title: 'What is your current immigration status inside Canada?',
+    type: 'single',
+    showIf: (p) => p.residenceCountry === 'CA',
+    options: [
+      { value: 'visitor', label: 'Visitor / Tourist (Visitor Visa or eTA)' },
+      { value: 'student', label: 'International Student (Study Permit)' },
+      { value: 'worker', label: 'Foreign Worker (Work Permit)' },
+      { value: 'pgwp', label: 'Post-Graduation Work Permit Holder' },
+      { value: 'asylum_claimant', label: 'Refugee Protection Claimant (Hearing Pending)' },
+      { value: 'protected_person', label: 'Protected Person / Convention Refugee (Accepted by IRB)' },
+      { value: 'out_of_status', label: 'Out of Status / Overstayed' },
+      { value: 'permanent_resident', label: 'Permanent Resident (PR)' },
+      { value: 'citizen', label: 'Canadian Citizen' },
+    ],
+  },
+  {
+    id: 'passport',
+    section: 'about',
+    title: 'Do you have a valid passport or travel document?',
+    type: 'single',
+    options: [
+      { value: 'valid', label: 'Yes, I have a valid passport / travel document' },
+      { value: 'expired', label: 'I have an expired passport that cannot easily be renewed' },
+      { value: 'none', label: 'I do not have a passport or travel document' },
+    ],
+  },
+  {
+    id: 'usStatus',
+    section: 'about',
+    title: 'Do you hold any legal status or visa for the United States?',
+    help: 'US status unlocks expanded eTA to Canada and exemptions for travel and border processing.',
+    type: 'single',
+    options: [
+      { value: 'none', label: 'No US status or visa' },
+      { value: 'us_nonimmigrant_visa', label: 'Valid US Non-Immigrant Visa (B1/B2 tourist, F1 student, H-1B, etc.)', hint: 'Can qualify for fast CAD $7 Canadian eTA!' },
+      { value: 'us_green_card', label: 'US Lawful Permanent Resident (Green Card holder)', hint: 'Visa-exempt to Canada with eTA' },
+      { value: 'us_citizen', label: 'US Citizen', hint: 'No visa or eTA required to enter Canada' },
+    ],
+  },
+  {
+    id: 'heldCanadianVisa10y',
+    section: 'about',
+    title: 'Have you held a Canadian visitor visa within the last 10 years?',
+    type: 'single',
+    options: [
+      { value: 'yes', label: 'Yes' },
+      { value: 'no', label: 'No' },
+      { value: 'unsure', label: 'Not sure' },
+    ],
+  },
+
+  // ──────────────────────── 3. FAMILY & RELATIVES ────────────────────────
+  {
+    id: 'maritalStatus',
+    section: 'family',
+    title: 'What is your marital status?',
+    type: 'single',
+    options: [
+      { value: 'single', label: 'Single (Never married)' },
+      { value: 'married', label: 'Married' },
+      { value: 'common_law', label: 'Common-Law Partner', hint: 'Lived together continuously in a conjugal relationship for 12+ months' },
+      { value: 'conjugal', label: 'Conjugal Partner', hint: 'Committed relationship 1+ year but could not marry/live together due to legal/immigration barriers' },
+      { value: 'divorced', label: 'Divorced / Legally Separated' },
+      { value: 'widowed', label: 'Widowed' },
+    ],
+  },
+  {
+    id: 'spouseStatus',
+    section: 'family',
+    title: 'Is your spouse or common-law partner connected to Canada?',
+    type: 'single',
+    showIf: (p) => ['married', 'common_law', 'conjugal'].includes(p.maritalStatus ?? ''),
+    options: [
+      { value: 'citizen', label: 'Canadian Citizen', hint: 'Can sponsor you for permanent residence!' },
+      { value: 'pr', label: 'Canadian Permanent Resident', hint: 'Can sponsor you for permanent residence!' },
+      { value: 'worker', label: 'Currently in Canada on a Work Permit' },
+      { value: 'student', label: 'Currently in Canada on a Study Permit' },
+      { value: 'none', label: 'None of the above / Not Canadian' },
+    ],
+  },
+  {
+    id: 'dependentChildren',
+    section: 'family',
+    title: 'How many dependent children do you have?',
+    help: 'Children under 22 years of age who are not married or in a common-law relationship.',
+    type: 'number',
+    min: 0,
+    max: 15,
+  },
+  {
+    id: 'relativesCitizenPR',
+    section: 'family',
+    title: 'Do you have any relatives who are CANADIAN CITIZENS or PERMANENT RESIDENTS?',
+    help: 'Family members in Canada can sponsor you, grant huge bonus points in Express Entry (sibling +15 pts), and unlock provincial streams (e.g. Manitoba, Saskatchewan).',
+    type: 'multi',
+    options: [
+      { value: 'parent', label: 'Parent (Mother or Father)' },
+      { value: 'child', label: 'Child (Son or Daughter, 18+)' },
+      { value: 'sibling', label: 'Brother or Sister', hint: '+15 bonus CRS points in Express Entry!' },
+      { value: 'grandparent', label: 'Grandparent' },
+      { value: 'grandchild', label: 'Grandchild' },
+      { value: 'aunt_uncle', label: 'Aunt or Uncle' },
+      { value: 'niece_nephew', label: 'Niece or Nephew' },
+      { value: 'cousin', label: 'First Cousin', hint: 'Counts for Manitoba family support!' },
+    ],
+  },
+  {
+    id: 'relativesProvinces',
+    section: 'family',
+    title: 'In which province(s) do your Canadian relatives live?',
+    type: 'provinces',
+    showIf: (p) => p.relativesCitizenPR !== undefined && p.relativesCitizenPR.length > 0,
+  },
+  {
+    id: 'parentCanadian',
+    section: 'family',
+    title: 'Was at least one of your parents a Canadian citizen when you were born?',
+    help: 'If yes, you may ALREADY be a Canadian citizen by descent!',
+    type: 'single',
+    options: [
+      { value: 'yes', label: 'Yes' },
+      { value: 'no', label: 'No' },
+      { value: 'unsure', label: 'Not sure' },
+    ],
+  },
+  {
+    id: 'parentCitizenshipType',
+    section: 'family',
+    title: 'How did your Canadian parent become a Canadian citizen?',
+    type: 'single',
+    showIf: (p) => p.parentCanadian === 'yes',
+    options: [
+      { value: 'born_in_canada', label: 'Born in Canada', hint: 'Automatic Canadian citizenship by descent for you!' },
+      { value: 'naturalized', label: 'Naturalized in Canada (immigrated and became a citizen before my birth)', hint: 'Automatic Canadian citizenship by descent for you!' },
+      { value: 'born_abroad_by_descent', label: 'Born outside Canada to Canadian parents', hint: 'May qualify under new Bill C-3 substantial connection rules' },
+      { value: 'unsure', label: 'Not sure' },
+    ],
+  },
+
+  // ──────────────────────── 4. EDUCATION ────────────────────────
+  {
+    id: 'education',
+    section: 'education',
+    title: 'What is your highest level of completed education?',
+    help: 'Foreign credentials will need an Educational Credential Assessment (ECA) for immigration purposes.',
+    type: 'single',
+    options: [
+      { value: 'none', label: 'Less than high school' },
+      { value: 'secondary', label: 'Secondary / High School Diploma' },
+      { value: 'one_year', label: '1-Year Post-Secondary Certificate / Diploma' },
+      { value: 'two_year', label: '2-Year Post-Secondary Diploma' },
+      { value: 'bachelors', label: 'Bachelor\'s Degree (3+ year program)' },
+      { value: 'two_or_more', label: 'Two or more certificates/diplomas/degrees (at least one 3+ years)' },
+      { value: 'masters', label: 'Master\'s Degree' },
+      { value: 'professional', label: 'Professional Degree in a licensed profession (Medicine, Law, Dentistry, Pharmacy)' },
+      { value: 'phd', label: 'Doctoral Degree (PhD)' },
+    ],
+  },
+  {
+    id: 'canadianEducation',
+    section: 'education',
+    title: 'Have you completed any post-secondary education INSIDE Canada?',
+    help: 'Canadian education grants bonus CRS points and unlocks the Post-Graduation Work Permit (PGWP).',
+    type: 'single',
+    options: [
+      { value: 'none', label: 'No Canadian credentials' },
+      { value: 'one_two_year', label: 'Yes, a 1-year or 2-year post-secondary credential in Canada (+15 CRS pts)' },
+      { value: 'three_plus', label: 'Yes, a 3+ year degree, Master\'s, or PhD in Canada (+30 CRS pts)' },
+    ],
+  },
+  {
+    id: 'studyPlan',
+    section: 'education',
+    title: 'If you want to study in Canada, what is your current progress?',
+    type: 'single',
+    options: [
+      { value: 'none', label: 'Not planning to study' },
+      { value: 'considering', label: 'Considering / Researching programs' },
+      { value: 'accepted_dli', label: 'Accepted by a Canadian Designated Learning Institution (DLI)' },
+      { value: 'accepted_with_pal', label: 'Accepted and received my Provincial Attestation Letter (PAL)' },
+    ],
+  },
+
+  // ──────────────────────── 5. LANGUAGES ────────────────────────
+  {
+    id: 'englishCLB',
+    section: 'language',
+    title: 'What is your English proficiency level (Canadian Language Benchmark / CLB)?',
+    help: 'Rough guide: CLB 9+ (IELTS 8+ Listening, 7+ others); CLB 7 (IELTS 6.0 in all bands); CLB 5 (IELTS 5.0); CLB 4 (IELTS 4.0).',
+    type: 'single',
+    options: [
+      { value: 10, label: 'CLB 10+ (Fluent / Native / IELTS 8.5+)' },
+      { value: 9, label: 'CLB 9 (Advanced / IELTS 8 Listening, 7 Reading/Writing/Speaking)' },
+      { value: 8, label: 'CLB 8 (Very Good / IELTS 7.5 Listening, 6.5 others)' },
+      { value: 7, label: 'CLB 7 (Competent / IELTS 6.0 in all 4 bands)', hint: 'Standard minimum for Express Entry FSW & skilled jobs' },
+      { value: 6, label: 'CLB 6 (Moderate / IELTS 5.5)' },
+      { value: 5, label: 'CLB 5 (Intermediate / IELTS 5.0)' },
+      { value: 4, label: 'CLB 4 (Basic / IELTS 4.0)', hint: 'Minimum for Caregivers, Trades, AIP, and Citizenship' },
+      { value: 0, label: 'Below CLB 4 or No English' },
+    ],
+  },
+  {
+    id: 'frenchCLB',
+    section: 'language',
+    title: 'What is your French proficiency level (NCLC / French benchmark)?',
+    help: 'French speakers have massive advantages: huge bonus CRS points, low cutoffs (NCLC 7 unlocks draws at ~400 CRS), and LMIA-exempt work permits outside Quebec!',
+    type: 'single',
+    options: [
+      { value: 9, label: 'NCLC 9+ (Advanced / Fluent / TEF C1/C2)' },
+      { value: 7, label: 'NCLC 7–8 (B2 / Competent)', hint: 'Unlocks priority French category draws and +50 CRS points!' },
+      { value: 5, label: 'NCLC 5–6 (B1 / Intermediate)', hint: 'Qualifies for Mobilité Francophone LMIA-exempt work permit!' },
+      { value: 4, label: 'NCLC 4 (A2 / Basic)' },
+      { value: 0, label: 'No French / Beginner' },
+    ],
+  },
+
+  // ──────────────────────── 6. WORK & SKILLS ────────────────────────
+  {
+    id: 'occupationFields',
+    section: 'work',
+    title: 'What field or industry is your primary work experience in?',
+    help: 'Canada targets specific in-demand sectors for category-based Express Entry and provincial draws.',
+    type: 'multi',
+    options: [
+      { value: 'stem', label: 'Tech, Software, Engineering & Math (STEM)' },
+      { value: 'healthcare', label: 'Healthcare & Medicine (Doctors, Nurses, Allied Health)' },
+      { value: 'trades', label: 'Skilled Trades (Construction, Electrical, Plumbing, Mechanics)' },
+      { value: 'transport', label: 'Transportation (Truck Drivers, Aviation, Rail)' },
+      { value: 'agriculture', label: 'Agriculture & Agri-Food' },
+      { value: 'education', label: 'Education & Teaching' },
+      { value: 'business', label: 'Business, Finance, Administration & Management' },
+      { value: 'caregiving', label: 'Caregiving (Home Child Care / Elder Support)' },
+      { value: 'hospitality', label: 'Hospitality, Food Service & Tourism' },
+      { value: 'other', label: 'Other field' },
+    ],
+  },
+  {
+    id: 'skillLevel',
+    section: 'work',
+    title: 'What is the skill level of your primary occupation (NOC 2021 TEER)?',
+    type: 'single',
+    options: [
+      { value: 'teer0_1', label: 'Management or Professional (TEER 0 or 1)', hint: 'Managers, software engineers, doctors, accountants, teachers' },
+      { value: 'teer2_3', label: 'Technical, Paraprofessional or Skilled Trade (TEER 2 or 3)', hint: 'Technicians, electricians, plumbers, chefs, administrative officers' },
+      { value: 'teer4_5', label: 'Intermediate or Entry-Level (TEER 4 or 5)', hint: 'Retail sales, food counter, truck drivers, farm workers, cleaners' },
+      { value: 'none', label: 'No work experience' },
+    ],
+  },
+  {
+    id: 'foreignExpYears',
+    section: 'work',
+    title: 'How many years of skilled work experience do you have OUTSIDE Canada?',
+    help: 'Full-time (or equivalent part-time) paid work experience in the last 10 years.',
+    type: 'number',
+    min: 0,
+    max: 30,
+  },
+  {
+    id: 'canadianExpYears',
+    section: 'work',
+    title: 'How many years of authorized skilled work experience do you have INSIDE Canada?',
+    help: 'Paid skilled work on a valid Canadian work permit. Unlocks the Canadian Experience Class (CEC)!',
+    type: 'number',
+    min: 0,
+    max: 20,
+  },
+  {
+    id: 'tradeCert',
+    section: 'work',
+    title: 'Do you hold a Certificate of Qualification in a skilled trade?',
+    type: 'single',
+    options: [
+      { value: 'yes', label: 'Yes' },
+      { value: 'no', label: 'No' },
+      { value: 'unsure', label: 'Not sure' },
+    ],
+  },
+
+  // ──────────────────────── 7. JOB OFFER & FUNDS ────────────────────────
+  {
+    id: 'jobOffer',
+    section: 'money',
+    title: 'Do you currently have a genuine job offer from an employer in Canada?',
+    type: 'single',
+    options: [
+      { value: 'yes', label: 'Yes, I have an official job offer in Canada' },
+      { value: 'no', label: 'No, I do not have a Canadian job offer' },
+    ],
+  },
+  {
+    id: 'jobOfferProvince',
+    section: 'money',
+    title: 'In which province is the Canadian job offer located?',
+    type: 'province',
+    showIf: (p) => p.jobOffer === 'yes',
+  },
+  {
+    id: 'jobOfferType',
+    section: 'money',
+    title: 'What type of job offer is it?',
+    type: 'single',
+    showIf: (p) => p.jobOffer === 'yes',
+    options: [
+      { value: 'lmia', label: 'Supported by an approved Labour Market Impact Assessment (LMIA)' },
+      { value: 'lmia_exempt', label: 'LMIA-Exempt (e.g. Francophone Mobility, CUSMA, Intra-Company Transfer)' },
+      { value: 'unsure', label: 'Not sure / Employer is currently applying' },
+    ],
+  },
+  {
+    id: 'fundsCAD',
+    section: 'money',
+    title: 'Approximately how much money in savings do you have available (in Canadian Dollars)?',
+    help: 'Settlement funds are required for Express Entry FSW, study permits, and initial living costs.',
+    type: 'single',
+    options: [
+      { value: 35000, label: 'CAD $35,000 or more', hint: 'Easily covers any family size proof of funds' },
+      { value: 25000, label: 'CAD $22,000 – $34,999', hint: 'Covers family of 3–4' },
+      { value: 15000, label: 'CAD $15,000 – $21,999', hint: 'Covers single applicant for Express Entry or Study' },
+      { value: 8000, label: 'CAD $7,000 – $14,999' },
+      { value: 3000, label: 'CAD $3,000 – $6,999', hint: 'Sufficient for tourist / visitor visas' },
+      { value: 0, label: 'Under CAD $3,000 / Very limited savings' },
+    ],
+  },
+
+  // ──────────────────────── 8. PROTECTION & SPECIAL CASES ────────────────────────
+  {
+    id: 'fearOfReturn',
+    section: 'protection',
+    title: 'Do you fear returning to your home country due to persecution, conflict, or violence?',
+    help: 'Relevant for refugee resettlement (PSR, GAR, EMPP) and in-Canada asylum protection.',
+    type: 'single',
+    options: [
+      { value: 'yes', label: 'Yes, I cannot safely return to my country of nationality' },
+      { value: 'no', label: 'No' },
+    ],
+  },
+  {
+    id: 'unhcrRegistered',
+    section: 'protection',
+    title: 'Are you registered with the United Nations Refugee Agency (UNHCR)?',
+    type: 'single',
+    showIf: (p) => p.fearOfReturn === 'yes' || p.residenceStatus === 'temporary_protection' || p.residenceStatus === 'refugee_recognized',
+    options: [
+      { value: 'yes', label: 'Yes, I have an active UNHCR registration/file number' },
+      { value: 'no', label: 'No' },
+      { value: 'unsure', label: 'Not sure' },
+    ],
+  },
+  {
+    id: 'refugeeDocument',
+    section: 'protection',
+    title: 'What protection or refugee document do you hold in your country of residence?',
+    help: 'Very important for Private Sponsorship (Group of Five requires an official RSD) and EMPP.',
+    type: 'single',
+    showIf: (p) => p.fearOfReturn === 'yes' || p.residenceStatus === 'temporary_protection' || p.residenceStatus === 'refugee_recognized',
+    options: [
+      { value: 'temporary_protection_id', label: 'Temporary Protection ID (e.g. Turkish Kimlik for Syrians)', hint: 'Recognized for EMPP and SAH sponsorships' },
+      { value: 'unhcr', label: 'UNHCR Refugee Status Determination (RSD) Certificate', hint: 'Recognized by Group of Five and Community Sponsors' },
+      { value: 'state', label: 'Host Country Government Official Refugee Certificate' },
+      { value: 'none', label: 'No official refugee certificate' },
+    ],
+  },
+  {
+    id: 'sponsorAvailable',
+    section: 'protection',
+    title: 'Do you have people or organizations in Canada willing to sponsor you as a refugee?',
+    type: 'multi',
+    showIf: (p) => p.fearOfReturn === 'yes' || p.residenceStatus === 'temporary_protection' || p.residenceStatus === 'refugee_recognized',
+    options: [
+      { value: 'g5', label: 'Five Canadian citizens or PRs in a local community (Group of Five)' },
+      { value: 'sah', label: 'A church or registered Sponsorship Agreement Holder (SAH) organization' },
+      { value: 'community', label: 'A registered Canadian community organization or business' },
+      { value: 'none', label: 'None / I do not have sponsors in Canada yet' },
+    ],
+    exclusive: ['none'],
+  },
+  {
+    id: 'enteringFromUS',
+    section: 'protection',
+    title: 'Are you travelling or planning to travel to Canada from the United States across a land border?',
+    help: 'The Safe Third Country Agreement (STCA) bars claims from the US unless an exception applies.',
+    type: 'single',
+    showIf: (p) => p.goals?.includes('protection') === true || p.canadaStatus === 'asylum_claimant',
+    options: [
+      { value: 'yes', label: 'Yes, entering at the US-Canada land border' },
+      { value: 'no', label: 'No, arriving by air from another country' },
+    ],
+  },
+
+  // ──────────────────────── 9. ADMISSIBILITY & BACKGROUND ────────────────────────
+  {
+    id: 'criminality',
+    section: 'background',
+    title: 'Do you have any criminal convictions, charges, or arrests anywhere in the world?',
+    help: 'Includes minor offences and driving under the influence (DUI/DWI).',
+    type: 'single',
+    options: [
+      { value: 'none', label: 'None / Clean criminal record' },
+      { value: 'minor', label: 'Minor offence (e.g. single old non-violent conviction or DUI)' },
+      { value: 'serious', label: 'Serious offence / Prison sentence' },
+    ],
+  },
+  {
+    id: 'medical',
+    section: 'background',
+    title: 'Do you have any severe medical conditions or ongoing treatments?',
+    help: 'Conditions that pose a public health danger or cause excessive demand on health services can require special assessment.',
+    type: 'single',
+    options: [
+      { value: 'none', label: 'No serious medical conditions' },
+      { value: 'condition', label: 'Yes, I have an ongoing medical condition requiring significant treatment' },
+    ],
+  },
+  {
+    id: 'history',
+    section: 'background',
+    title: 'Have any of the following ever happened to you regarding Canada or other countries?',
+    help: 'Full transparency is required on Canadian applications. Prior refusals can be explained or overcome.',
+    type: 'multi',
+    options: [
+      { value: 'visited_canada', label: 'Previously visited Canada on a valid visa or status' },
+      { value: 'refused_canada_visa', label: 'Previously refused a Canadian temporary visa or permit' },
+      { value: 'refused_other_country_visa', label: 'Previously refused a visa to the US, UK, Schengen, or Australia' },
+      { value: 'overstayed_canada', label: 'Previously overstayed in Canada or fell out of status' },
+      { value: 'removed_from_canada', label: 'Removed or deported from Canada' },
+      { value: 'misrepresentation', label: 'Found by IRCC to have misrepresented information (5-year bar)' },
+      { value: 'asylum_claimed_elsewhere', label: 'Previously made a refugee claim in the US, UK, Australia, or NZ' },
+    ],
+  },
+];
