@@ -101,7 +101,7 @@ export const AiCaseAssistant: React.FC<AiCaseAssistantProps> = ({
 
   const crs = calculateCRS(profile);
   const fsw = calculateFSWPoints(profile);
-  const caseSummary = buildCaseSummaryForAI(profile, crs, fsw, outcomes);
+  const caseSummary = buildCaseSummaryForAI(profile, crs, fsw, outcomes, lang);
 
   const remainingQuestions = Math.max(0, AI_MAX_QUESTIONS_PER_DAY - dailyUsed);
   const isQuotaReached = remainingQuestions <= 0;
@@ -167,15 +167,25 @@ export const AiCaseAssistant: React.FC<AiCaseAssistantProps> = ({
     // Only send last 2 messages to minimize token usage
     const recentHistory = nextMessages.slice(-2);
 
-    const systemInstruction = `أنت مستشار ذكي مختصر للهجرة إلى كندا (بيانات 2026 الرسمية من canada.ca).
-ملخص حالة المستخدم:
----
+    const systemInstruction = isAr
+      ? `أنت مستشار هجرة كندا (قوانين 2026 الرسمية).
+حالة المستخدم:
 ${caseSummary}
----
-قواعد صارمة:
-- أجب فقط على الأسئلة المتعلقة بهجرة كندا وحالة المستخدم أعلاه. ارفض أي سؤال خارج موضوع هجرة كندا.
-- برنامج EMPP مغلق منذ مارس 2026، وكفالة الخمسة G5 متوقفة، وكفالة المنظمات SAH مفتوحة.
-- أجب باختصار شديد (3 نقاط قصيرة كحد أقصى).`;
+
+قواعد صارمة جداً:
+1. أجب باللغة العربية فقط.
+2. الرد يجب أن يكون جملتين قصيرتين فقط (أقل من 40 كلمة إجمالاً). ممنوع الإطالة أو المقدمات أو النصائح العامة.
+3. نص عادي فقط بدون أي رموز ماركداون مثل ** أو # أو قوائم طويلة.
+4. اذكر اسم البرنامج الأنسب من ملخص الحالة والخطوة العملية المباشرة فقط. (ملاحظة: EMPP مغلق في 2026، وكفالة G5 متوقفة، وكفالة SAH مفتوحة).`
+      : `You are a Canadian immigration advisor (official 2026 IRCC rules).
+User case summary:
+${caseSummary}
+
+STRICT RULES:
+1. Reply ONLY in English.
+2. Maximum 2 short sentences (under 40 words total). No intro, no filler, no disclaimers.
+3. Plain text ONLY — do NOT use markdown (** or #) or long numbered lists.
+4. Name the exact best-fitting program from the summary above and state the 1 concrete requirement/next step. (Note: EMPP is closed as of March 2026, G5 refugee sponsorship is paused, SAH sponsorship is open).`;
 
     try {
       const endpoint = proxyUrl || 'https://api.deepseek.com/chat/completions';
@@ -210,9 +220,10 @@ ${caseSummary}
       }
 
       const data = await response.json();
-      const replyText =
+      const rawReply =
         data?.choices?.[0]?.message?.content?.trim() ||
         (isAr ? 'لا يوجد رد.' : 'No response.');
+      const replyText = rawReply.replace(/\*\*/g, '').replace(/^#+\s*/gm, '').trim();
 
       const updatedUsage = incrementDailyUsage();
       setDailyUsed(updatedUsage.count);

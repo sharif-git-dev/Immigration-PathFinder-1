@@ -12,4 +12,4 @@ export const DEEPSEEK_MODEL: string = 'deepseek-chat';
 export const AI_MAX_QUESTIONS_PER_DAY: number = 5;   // أقصى عدد أسئلة لكل مستخدم يومياً
 export const AI_COOLDOWN_SECONDS: number = 10;       // فترة الانتظار بالثواني بين كل سؤال وآخر
 export const AI_MAX_INPUT_CHARS: number = 220;       // أقصى طول للسؤال الواحد (بالحروف)
-export const AI_MAX_OUTPUT_TOKENS: number = 250;     // أقصى حجم لرد الذكاء الاصطناعي
+export const AI_MAX_OUTPUT_TOKENS: number = 110;     // أقصى حجم لرد الذكاء الاصطناعي (قصير ومباشر)

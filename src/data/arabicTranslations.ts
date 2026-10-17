@@ -596,7 +596,86 @@ export function buildCaseSummaryForAI(
   crs: ReturnType<typeof calculateCRS>,
   fsw: FswResult,
   outcomes: Outcome[],
+  lang: 'ar' | 'en' = 'ar',
 ): string {
+  const isAr = lang === 'ar';
+  const openOutcomes = outcomes.filter(
+    (o) => o.program.availability !== 'closed' && o.program.availability !== 'paused',
+  );
+
+  const getProgName = (o: Outcome) =>
+    isAr ? PROGRAM_AR[o.program.id]?.name || o.program.name : o.program.name;
+
+  const eligibleList = openOutcomes.filter((o) => o.status === 'eligible');
+  const conditionalList = openOutcomes.filter((o) => o.status === 'possible');
+  const closeList = openOutcomes.filter((o) => o.status === 'close').slice(0, 4);
+
+  const topOutcome = openOutcomes[0];
+  const topMissingChecks = topOutcome
+    ? topOutcome.result.checks
+        .filter((c) => c.result === 'fail' || c.result === 'warn' || c.result === 'unknown')
+        .map((c) => `${c.label}${c.detail ? ` (${c.detail})` : ''}`)
+        .slice(0, 3)
+        .join('; ')
+    : '';
+
+  if (!isAr) {
+    const resCountryEn = profile.residenceCountry
+      ? getCountryDisplayName(profile.residenceCountry, 'en')
+      : 'Not specified';
+    const citizenshipsEn =
+      profile.citizenships && profile.citizenships.length > 0
+        ? profile.citizenships.map((c) => getCountryDisplayName(c, 'en')).join(', ')
+        : 'Not specified';
+
+    return [
+      `• Residence: ${resCountryEn} (Status: ${
+        profile.residenceCountry === 'CA'
+          ? profile.canadaStatus || 'In Canada'
+          : profile.residenceStatus || 'Not specified'
+      })`,
+      `• Citizenship: ${citizenshipsEn} | Age: ${profile.age ?? 'N/A'}`,
+      `• Education: ${profile.education || 'N/A'} (Canadian study: ${
+        profile.canadianEducation && profile.canadianEducation !== 'none' ? 'Yes' : 'No'
+      })`,
+      `• Language: English CLB ${profile.englishCLB ?? 0} | French NCLC ${profile.frenchCLB ?? 0}`,
+      `• Work Experience: ${profile.foreignExpYears ?? 0} yrs foreign | ${
+        profile.canadianExpYears ?? 0
+      } yrs in Canada (Fields: ${profile.occupationFields?.join(', ') || 'None'})`,
+      `• Job Offer in Canada: ${
+        profile.jobOffer === 'yes' ? `Yes (${profile.jobOfferProvince || 'Any'})` : 'No'
+      }`,
+      `• Family in Canada: ${
+        profile.relativesCitizenPR && profile.relativesCitizenPR.length > 0
+          ? profile.relativesCitizenPR.join(', ')
+          : 'None'
+      }`,
+      `• Refugee / Fear of Return: ${
+        profile.fearOfReturn === 'yes'
+          ? `Yes (Doc: ${profile.refugeeDocument || 'none'}, UNHCR: ${
+              profile.unhcrRegistered || 'no'
+            }, SAH sponsor: ${profile.sponsorAvailable?.includes('sah') ? 'Yes' : 'No'})`
+          : 'No'
+      }`,
+      `• Settlement Funds: $${(profile.fundsCAD ?? 0).toLocaleString()} CAD`,
+      `• Express Entry CRS: ${crs.total}/1200 (2026 General/CEC cutoff ~510, French ~400, Category ~440) | FSW Grid: ${
+        fsw.total
+      }/100 (${fsw.passed ? 'Pass 67+' : 'Below 67'})`,
+      `• #1 Best Option: ${topOutcome ? `${getProgName(topOutcome)} [${topOutcome.status}]` : 'None'}${
+        topMissingChecks ? ` — Key conditions/gaps: ${topMissingChecks}` : ''
+      }`,
+      `• Qualified Programs (${eligibleList.length}): ${
+        eligibleList.length > 0 ? eligibleList.map(getProgName).join(' | ') : 'None yet'
+      }`,
+      `• Conditional / Draw-Based (${conditionalList.length}): ${
+        conditionalList.length > 0 ? conditionalList.slice(0, 5).map(getProgName).join(' | ') : 'None'
+      }`,
+      `• Close (Missing 1 fixable step): ${
+        closeList.length > 0 ? closeList.map(getProgName).join(' | ') : 'None'
+      }`,
+    ].join('\n');
+  }
+
   const resCountry = profile.residenceCountry
     ? getCountryDisplayName(profile.residenceCountry, 'ar')
     : 'غير محدد';
@@ -608,93 +687,75 @@ export function buildCaseSummaryForAI(
   const resStatusMap: Record<string, string> = {
     citizen: 'مواطن في بلد الإقامة',
     permanent_resident: 'مقيم دائم',
-    temporary_protection: 'حماية مؤقتة / نازح (مثل الكملك في تركيا)',
+    temporary_protection: 'حماية مؤقتة (كملك)',
     refugee_recognized: 'لاجئ معترف به رسمياً',
-    asylum_pending: 'طالب لجوء (ملف قيد الانتظار)',
+    asylum_pending: 'طالب لجوء',
     temp_work: 'إقامة عمل مؤقتة',
     temp_study: 'إقامة دراسة',
-    temp_visitor: 'تأشيرة زيارة / سياحة',
-    no_status: 'بلا إقامة قانونية سارية',
+    temp_visitor: 'زائر',
+    no_status: 'بلا إقامة قانونية',
   };
 
   const caStatusMap: Record<string, string> = {
-    pgwp: 'تصريح عمل بعد التخرج (PGWP) داخل كندا',
+    pgwp: 'تصريح عمل بعد التخرج (PGWP)',
     worker: 'تصريح عمل داخل كندا',
     student: 'طالب دولي داخل كندا',
     visitor: 'زائر داخل كندا',
     asylum_claimant: 'طالب لجوء داخل كندا',
-    protected_person: 'شخص محمي / لاجئ مقبول داخل كندا',
+    protected_person: 'شخص محمي داخل كندا',
     out_of_status: 'منتهي الإقامة داخل كندا',
   };
 
   const eduMap: Record<string, string> = {
     phd: 'دكتوراه',
-    masters: 'ماجستير أو شهادة مهنية عليا',
-    two_or_more: 'شهادتان جامعيتان أو أكثر',
-    bachelors: 'بكالوريوس (3–4 سنوات)',
-    two_year: 'دبلوم سنتين بعد الثانوي',
-    one_year: 'شهادة سنة واحدة بعد الثانوي',
+    masters: 'ماجستير',
+    two_or_more: 'شهادتان جامعيتان',
+    bachelors: 'بكالوريوس',
+    two_year: 'دبلوم سنتين',
+    one_year: 'دبلوم سنة',
     secondary: 'ثانوية عامة',
-    none: 'أقل من ثانوية عامة',
+    none: 'أقل من ثانوية',
   };
 
-  const openOutcomes = outcomes.filter(
-    (o) => o.program.availability !== 'closed' && o.program.availability !== 'paused',
-  );
-  const eligibleList = openOutcomes
-    .filter((o) => o.status === 'eligible')
-    .map((o) => PROGRAM_AR[o.program.id]?.name || o.program.name);
-  const conditionalList = openOutcomes
-    .filter((o) => o.status === 'possible')
-    .map((o) => PROGRAM_AR[o.program.id]?.name || o.program.name);
-  const closeList = openOutcomes
-    .filter((o) => o.status === 'close')
-    .slice(0, 6)
-    .map((o) => PROGRAM_AR[o.program.id]?.name || o.program.name);
-
   const lines = [
-    `• بلد الإقامة الحالي: ${resCountry}`,
-    `• الوضع القانوني: ${
+    `• الإقامة: ${resCountry} (${
       profile.residenceCountry === 'CA'
         ? caStatusMap[profile.canadaStatus || ''] || 'داخل كندا'
         : resStatusMap[profile.residenceStatus || ''] || 'غير محدد'
-    }`,
-    `• الجنسية: ${citizenships}`,
-    `• العمر: ${profile.age !== undefined ? `${profile.age} سنة` : 'غير محدد'}`,
-    `• المؤهل الدراسي: ${eduMap[profile.education || ''] || 'غير محدد'} (دراسة في كندا: ${
+    }) | الجنسية: ${citizenships} | العمر: ${profile.age ?? 'غير محدد'}`,
+    `• التعليم: ${eduMap[profile.education || ''] || 'غير محدد'} (دراسة بكندا: ${
       profile.canadianEducation && profile.canadianEducation !== 'none' ? 'نعم' : 'لا'
     })`,
-    `• مستوى اللغة الإنجليزية: CLB ${profile.englishCLB ?? 0} | الفرنسية: NCLC ${profile.frenchCLB ?? 0}`,
-    `• الخبرة المهنية خارج كندا: ${profile.foreignExpYears ?? 0} سنوات | داخل كندا: ${
+    `• اللغة: الإنجليزية CLB ${profile.englishCLB ?? 0} | الفرنسية NCLC ${profile.frenchCLB ?? 0}`,
+    `• الخبرة: ${profile.foreignExpYears ?? 0} سنوات بالخارج | ${
       profile.canadianExpYears ?? 0
-    } سنوات`,
-    `• مجال العمل: ${profile.occupationFields?.join(', ') || 'غير محدد'}`,
-    `• عرض عمل في كندا: ${
-      profile.jobOffer === 'yes' ? `نعم (${profile.jobOfferProvince || 'مقاطعة غير محددة'})` : 'لا يوجد'
-    }`,
-    `• أقارب مواطنون أو مقيمون دائمون في كندا: ${
+    } سنوات بكندا (المجال: ${profile.occupationFields?.join(', ') || 'غير محدد'})`,
+    `• عرض عمل بكندا: ${profile.jobOffer === 'yes' ? 'نعم' : 'لا'} | أقارب بكندا: ${
       profile.relativesCitizenPR && profile.relativesCitizenPR.length > 0
-        ? `${profile.relativesCitizenPR.join(', ')} في (${profile.relativesProvinces?.join(', ') || 'غير محدد'})`
+        ? profile.relativesCitizenPR.join(', ')
         : 'لا يوجد'
     }`,
-    `• الخوف من العودة / اللجوء: ${
+    `• اللجوء: ${
       profile.fearOfReturn === 'yes'
-        ? `نعم (وثيقة: ${profile.refugeeDocument || 'غير محدد'}، تسجيل UNHCR: ${
-            profile.unhcrRegistered === 'yes' ? 'نعم' : 'لا'
-          }، كفيل SAH كندي: ${profile.sponsorAvailable?.includes('sah') ? 'متوفر' : 'غير متوفر'})`
+        ? `نعم (وثيقة: ${profile.refugeeDocument || 'لا'}، كفيل SAH: ${
+            profile.sponsorAvailable?.includes('sah') ? 'متوفر' : 'غير متوفر'
+          })`
         : 'لا'
+    } | المدخرات: $${(profile.fundsCAD ?? 0).toLocaleString()} CAD`,
+    `• النقاط: CRS ${crs.total}/1200 (معدل السحب العام ~510، الفرنسي ~400) | FSW ${fsw.total}/100 (${
+      fsw.passed ? 'مجتاز 67+' : 'أقل من 67'
+    })`,
+    `• أفضل خيار رقم 1: ${topOutcome ? getProgName(topOutcome) : 'لا يوجد'}${
+      topMissingChecks ? ` — الملاحظات/النواقص: ${topMissingChecks}` : ''
     }`,
-    `• المبلغ المالي المتوفر (مدخرات): $${(profile.fundsCAD ?? 0).toLocaleString()} دولار كندي`,
-    `• مجموع نقاط Express Entry CRS المحسوب: ${crs.total} من 1200`,
-    `• نقاط شبكة العمالة الماهرة FSW: ${fsw.total} من 100 (${fsw.passed ? 'مجتاز لشرط 67' : 'أقل من 67 المطلوب'})`,
-    `• البرامج المستوفية للشروط حالياً (${eligibleList.length}): ${
-      eligibleList.length > 0 ? eligibleList.join(' | ') : 'لا يوجد برنامج مستوفٍ بالكامل حالياً'
+    `• البرامج المؤهلة (${eligibleList.length}): ${
+      eligibleList.length > 0 ? eligibleList.map(getProgName).join(' | ') : 'لا يوجد حالياً'
     }`,
-    `• البرامج المشروطة بدعوة أو سحب (${conditionalList.length}): ${
-      conditionalList.length > 0 ? conditionalList.join(' | ') : 'لا يوجد'
+    `• البرامج المشروطة (${conditionalList.length}): ${
+      conditionalList.length > 0 ? conditionalList.slice(0, 5).map(getProgName).join(' | ') : 'لا يوجد'
     }`,
-    `• البرامج القريبة التي ينقصها شرط قابل للتعديل: ${
-      closeList.length > 0 ? closeList.join(' | ') : 'لا يوجد'
+    `• برامج ينقصها شرط واحد: ${
+      closeList.length > 0 ? closeList.map(getProgName).join(' | ') : 'لا يوجد'
     }`,
   ];
 
