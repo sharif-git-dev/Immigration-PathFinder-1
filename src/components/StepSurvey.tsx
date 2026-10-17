@@ -309,7 +309,7 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
             cursor: currentStepIndex === 0 ? 'default' : 'pointer',
           }}
         >
-          {isAr ? '← السابق' : '← Back'}
+          {isAr ? '→ السابق' : '← Back'}
         </button>
 
         <span className="step-counter-pill">
@@ -328,10 +328,10 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
         >
           {currentStepIndex === activeSteps.length - 1
             ? isAr
-              ? 'النتائج →'
+              ? 'النتائج ←'
               : 'Results →'
             : isAr
-            ? 'التالي →'
+            ? 'التالي ←'
             : 'Next →'}
         </button>
       </div>
@@ -1314,7 +1314,7 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
               cursor: currentStepIndex === 0 ? 'default' : 'pointer',
             }}
           >
-            {isAr ? '← السابق' : '← Back'}
+            {isAr ? '→ السابق' : '← Back'}
           </button>
 
           <button
@@ -1331,10 +1331,10 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
           >
             {currentStepIndex === activeSteps.length - 1
               ? isAr
-                ? 'النتائج →'
+                ? 'النتائج ←'
                 : 'Results →'
               : isAr
-              ? 'التالي →'
+              ? 'التالي ←'
               : 'Next →'}
           </button>
         </div>
@@ -1344,8 +1344,7 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
         <button
           type="button"
           onClick={onViewResults}
-          className="btn-results-pill"
-          style={{ padding: '11px 24px', fontSize: 14.5 }}
+          className="btn-skip-colorful"
         >
           {isAr
             ? `تخطي كل الأسئلة (${totalMatches}) ⏭`

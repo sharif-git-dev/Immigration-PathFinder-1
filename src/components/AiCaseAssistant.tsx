@@ -362,7 +362,7 @@ STRICT RULES:
               ? `اكتب سؤالك هنا (حتى ${AI_MAX_INPUT_CHARS} حرفاً)...`
               : `Ask a question (max ${AI_MAX_INPUT_CHARS} chars)...`
           }
-          className="results-search-input"
+          className="ai-dark-input"
           disabled={loading || isQuotaReached}
         />
         <button

@@ -34,15 +34,15 @@ export const App: React.FC = () => {
   const [stage, setStage] = useState<AppStage>('lang');
 
   useEffect(() => {
-    // Keep layout direction stable (ltr) so selecting a language never flips the screen
-    document.documentElement.dir = 'ltr';
+    // Only keep LTR on the initial language selection screen; flip to RTL/LTR on questions & results
+    document.documentElement.dir = stage === 'lang' ? 'ltr' : lang === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = lang;
     try {
       localStorage.setItem(LANG_KEY, lang);
     } catch {
       // ignore
     }
-  }, [lang]);
+  }, [lang, stage]);
 
   useEffect(() => {
     try {
@@ -69,10 +69,10 @@ export const App: React.FC = () => {
 
   const isAr = lang === 'ar';
 
-  // SLIDE 1: Standalone Language Selection Screen (by itself on screen, no layout flip)
+  // SLIDE 1: Standalone Language Selection Screen (always LTR so it never flips)
   if (stage === 'lang') {
     return (
-      <div className="standalone-screen">
+      <div className="standalone-screen" dir="ltr">
         <div className="launch-card">
           <div className="maple-hero-badge">🍁</div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: '#1e1b4b' }}>
@@ -112,7 +112,7 @@ export const App: React.FC = () => {
   // SLIDE 2: Standalone "What We Help You With" Screen
   if (stage === 'intro') {
     return (
-      <div className="standalone-screen">
+      <div className="standalone-screen" dir={isAr ? 'rtl' : 'ltr'}>
         <div className="launch-card" key="intro-slide">
           <div className="maple-hero-badge">✨</div>
           <h1 style={{ fontSize: 25, fontWeight: 800, color: '#1e1b4b' }}>
@@ -153,7 +153,7 @@ export const App: React.FC = () => {
           <div>
             <button
               type="button"
-              className="btn-skip-ghost"
+              className="btn-skip-colorful"
               onClick={() => setStage('results')}
             >
               {isAr ? 'تخطي كل الأسئلة للنتائج ⏭' : 'Skip all questions to results ⏭'}
@@ -166,6 +166,7 @@ export const App: React.FC = () => {
 
   return (
     <div
+      dir={isAr ? 'rtl' : 'ltr'}
       style={{
         minHeight: '100vh',
         display: 'flex',
