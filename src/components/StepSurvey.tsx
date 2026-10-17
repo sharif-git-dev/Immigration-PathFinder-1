@@ -9,6 +9,7 @@ interface StepSurveyProps {
   onViewResults: () => void;
   totalMatches: number;
   lang: 'ar' | 'en';
+  onChangeLang: (lang: 'ar' | 'en') => void;
 }
 
 interface StepConfig {
@@ -27,6 +28,7 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
   onViewResults,
   totalMatches,
   lang,
+  onChangeLang,
 }) => {
   const isAr = lang === 'ar';
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -42,6 +44,11 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
   };
 
   const allSteps: StepConfig[] = [
+    {
+      id: 'language',
+      titleAr: 'اختر اللغة / Choose Language',
+      titleEn: 'Choose Language / اختر اللغة',
+    },
     {
       id: 'residenceCountry',
       titleAr: 'أين تقيم حالياً؟',
@@ -327,7 +334,7 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
           onClick={onViewResults}
           className="btn-results-pill"
         >
-          {isAr ? `النتائج (${totalMatches}) ←` : `Results (${totalMatches}) →`}
+          {isAr ? `تخطي الكل (${totalMatches}) ←` : `Skip All (${totalMatches}) →`}
         </button>
       </div>
 
@@ -381,6 +388,39 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
         )}
 
         <div className="step-options-container">
+          {/* 0. Language Selection */}
+          {currentStep.id === 'language' && (
+            <div className="option-list">
+              <button
+                type="button"
+                onClick={() => {
+                  onChangeLang('ar');
+                  setTimeout(() => goNext(), 160);
+                }}
+                className={`option-tile ${lang === 'ar' ? 'selected' : ''}`}
+              >
+                <span className="option-tile-title" style={{ fontSize: 19 }}>
+                  العربية
+                </span>
+                <span className="option-tile-check">✓</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onChangeLang('en');
+                  setTimeout(() => goNext(), 160);
+                }}
+                className={`option-tile ${lang === 'en' ? 'selected' : ''}`}
+              >
+                <span className="option-tile-title" style={{ fontSize: 19 }}>
+                  English
+                </span>
+                <span className="option-tile-check">✓</span>
+              </button>
+            </div>
+          )}
+
           {/* 1. Residence Country */}
           {currentStep.id === 'residenceCountry' && (
             <div>
@@ -1308,7 +1348,7 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
           )}
         </div>
 
-        <div className="step-card-footer">
+        <div className="step-card-footer" style={{ flexWrap: 'wrap', gap: 12 }}>
           <button
             type="button"
             onClick={goPrev}
@@ -1325,26 +1365,39 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
             {isAr ? '→ السابق' : '← Back'}
           </button>
 
-          <button
-            type="button"
-            onClick={goNext}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--accent)',
-              fontSize: 14.5,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            {currentStepIndex === activeSteps.length - 1
-              ? isAr
-                ? 'عرض النتائج ←'
-                : 'View Results →'
-              : isAr
-              ? 'تخطي ←'
-              : 'Skip →'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+            {currentStepIndex < activeSteps.length - 1 && (
+              <button
+                type="button"
+                onClick={goNext}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748b',
+                  fontSize: 14.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                {isAr ? 'تخطي السؤال' : 'Skip question'}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onViewResults}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--accent)',
+                fontSize: 14.5,
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              {isAr ? 'تخطي كل الأسئلة ←' : 'Skip all questions →'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

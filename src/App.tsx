@@ -131,6 +131,7 @@ export const App: React.FC = () => {
             onViewResults={() => setActiveView('results')}
             totalMatches={totalRelevant}
             lang={lang}
+            onChangeLang={setLang}
           />
         ) : (
           <SimpleResults
