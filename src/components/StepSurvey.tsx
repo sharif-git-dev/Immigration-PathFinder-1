@@ -41,32 +41,39 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
     });
   };
 
-  const hasCA = !profile.targetCountries || profile.targetCountries.length === 0 || profile.targetCountries.includes('CA');
-  const hasDE = !profile.targetCountries || profile.targetCountries.length === 0 || profile.targetCountries.includes('DE');
+  const activeCountry = profile.activeCountry ?? 'CA';
+  const isCA = activeCountry === 'CA';
+  const isDE = activeCountry === 'DE';
+  const isUS = activeCountry === 'US';
+
+  // Reset step index to 0 when the user switches countries
+  useEffect(() => {
+    setCurrentStepIndex(0);
+  }, [activeCountry]);
 
   const allSteps: StepConfig[] = [
     {
       id: 'residenceCountry',
-      titleAr: 'بلد الإقامة؟',
+      titleAr: 'بلد الإقامة الحالي؟',
       subtitleAr: 'الدولة التي تتواجد فيها الآن فعلياً.',
-      titleEn: 'Residence?',
+      titleEn: 'Current country of residence?',
       subtitleEn: 'The country where you currently live.',
     },
     {
       id: 'residenceStatus',
-      titleAr: 'وضعك القانوني؟',
-      subtitleAr: 'يحدد مسارات السفارة أو الحماية المتاحة لك.',
-      titleEn: 'Legal status?',
-      subtitleEn: 'Determines visa office and protection eligibility.',
+      titleAr: 'وضعك القانوني في بلد إقامتك؟',
+      subtitleAr: 'يحدد مسارات السفارة أو إعادة التوطين المتاحة لك.',
+      titleEn: 'Legal status in residence country?',
+      subtitleEn: 'Determines embassy processing and protection eligibility.',
       showIf: (p) => p.residenceCountry !== undefined && p.residenceCountry !== 'CA',
     },
     {
       id: 'canadaStatus',
-      titleAr: 'وضعك بكندا؟',
+      titleAr: 'وضعك القانوني داخل كندا؟',
       subtitleAr: 'نوع التصريح الحالي داخل كندا.',
-      titleEn: 'Status in Canada?',
+      titleEn: 'Current status in Canada?',
       subtitleEn: 'Your current permit or legal status inside Canada.',
-      showIf: (p) => p.residenceCountry === 'CA',
+      showIf: (p) => isCA && p.residenceCountry === 'CA',
     },
     {
       id: 'citizenships',
@@ -76,117 +83,235 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
       subtitleEn: 'Select one or more.',
       isMulti: true,
     },
+    // ── US ONLY: DV Lottery Country of Birth
+    {
+      id: 'usDvEligibleBirth',
+      titleAr: 'بلد الميلاد لقرعة اللوتري الأمريكية (DV Lottery)؟',
+      subtitleAr: 'قرعة الـ 55,000 جرين كارد تعتمد على بلد الميلاد (أو بلد ميلاد الزوج/الزوجة) وليس الجنسية.',
+      titleEn: 'Country of Birth for US DV Lottery?',
+      subtitleEn: 'The 55,000 Green Card Lottery is based on country of birth (or spouse’s country of birth).',
+      showIf: () => isUS,
+    },
     {
       id: 'age',
       titleAr: 'العمر؟',
-      subtitleAr: 'يؤثر على نقاط كندا (CRS) وبطاقة الفرص الألمانية (Chancenkarte <35).',
+      subtitleAr: isCA
+        ? 'أعلى نقاط عمر في Express Entry تكون بين 20 و29 سنة (110 نقاط).'
+        : isDE
+          ? 'بطاقة الفرص الألمانية (Chancenkarte) تمنح +2 نقطة تحت 35 سنة، و+1 نقطة بين 35 و40 سنة.'
+          : 'مهم لمسارات الدراسة والعمل في الولايات المتحدة.',
       titleEn: 'Age?',
-      subtitleEn: 'Impacts Canada CRS & Germany Chancenkarte points (<35).',
+      subtitleEn: isCA
+        ? 'Max Express Entry CRS age points are at ages 20–29 (110 pts).'
+        : isDE
+          ? 'Germany Chancenkarte awards +2 pts under age 35, and +1 pt for ages 35–40.'
+          : 'Used to evaluate US study, work, and family age rules.',
     },
     {
       id: 'education',
-      titleAr: 'التعليم؟',
+      titleAr: 'المؤهل الدراسي؟',
       subtitleAr: 'أعلى شهادة تخرجت منها.',
-      titleEn: 'Education?',
+      titleEn: 'Highest Education?',
       subtitleEn: 'Highest completed diploma or degree.',
     },
+    // ── CANADA ONLY: Studied in Canada
     {
       id: 'canadianEducation',
-      titleAr: 'دراسة بكندا؟',
-      subtitleAr: 'تمنحك +15 إلى +30 نقطة وتؤهلك لتصريح PGWP.',
+      titleAr: 'هل درست في كندا؟',
+      subtitleAr: 'تمنحك +15 إلى +30 نقطة في CRS وتؤهلك لتصريح عمل الخريجين PGWP.',
       titleEn: 'Studied in Canada?',
       subtitleEn: 'Awards +15 to +30 CRS points and PGWP eligibility.',
-      showIf: () => hasCA,
+      showIf: () => isCA,
+    },
+    // ── GERMANY ONLY: Credential Recognition (ANABIN / ZAB)
+    {
+      id: 'deDegreeRecognition',
+      titleAr: 'معادلة الشهادة في ألمانيا (ANABIN / ZAB)؟',
+      subtitleAr: 'المعادلة الكاملة تؤهلك مباشرة لبطاقة الفرص، والمعادلة الجزئية تمنح +4 نقاط.',
+      titleEn: 'German Credential Recognition (ANABIN / ZAB)?',
+      subtitleEn: 'Full recognition unlocks Chancenkarte directly; partial recognition awards +4 pts.',
+      showIf: () => isDE,
+    },
+    // ── GERMANY ONLY: German Language Level (CEFR)
+    {
+      id: 'germanLevel',
+      titleAr: 'مستوى اللغة الألمانية (CEFR)؟',
+      subtitleAr: 'B2 يمنح +3 نقاط، B1 يمنح +2 نقطة ويفتح التدريب المهني Ausbildung، وA1 يكفي كشرط أساسي.',
+      titleEn: 'German Language Level (CEFR)?',
+      subtitleEn: 'B2 = +3 pts, B1 = +2 pts & Ausbildung, A2 = +1 pt, A1 = baseline.',
+      showIf: () => isDE,
     },
     {
       id: 'englishCLB',
-      titleAr: 'الإنجليزية (CLB / IELTS)؟',
-      subtitleAr: 'تفتح مسارات كندا وأمريكا وبطاقة الفرص الألمانية (B2+).',
-      titleEn: 'English (CLB / IELTS)?',
-      subtitleEn: 'Unlocks Canada, USA & Germany Chancenkarte (B2+).',
+      titleAr: isCA
+        ? 'مستوى الإنجليزية (CLB / IELTS)؟'
+        : isDE
+          ? 'مستوى الإنجليزية (IELTS / CEFR)؟'
+          : 'مستوى اللغة الإنجليزية؟',
+      subtitleAr: isCA
+        ? 'معيار CLB المعادل لاختبار IELTS أو CELPIP.'
+        : isDE
+          ? 'مستوى B2 (IELTS 6.0) يحقق الشرط الأساسي لبطاقة الفرص بدون ألماني، وC1 يمنح +1 نقطة إضافية.'
+          : 'مهم للقبول الجامعي F-1 والعمل المهني والجنسية الأمريكية.',
+      titleEn: isCA ? 'English Level (CLB / IELTS)?' : 'English Proficiency?',
+      subtitleEn: isCA
+        ? 'CLB equivalent for IELTS or CELPIP.'
+        : isDE
+          ? 'English B2 meets the Chancenkarte baseline without German; C1 awards +1 bonus point.'
+          : 'Important for US F-1 university study, work visas, and naturalization.',
     },
-    {
-      id: 'germanLevel',
-      titleAr: 'اللغة الألمانية (🇩🇪)؟',
-      subtitleAr: 'تمنح حتى +3 نقاط في بطاقة الفرص وتفتح التدريب المهني Ausbildung.',
-      titleEn: 'German Level (🇩🇪)?',
-      subtitleEn: 'Awards up to +3 Chancenkarte points & unlocks Ausbildung.',
-      showIf: () => hasDE,
-    },
+    // ── CANADA ONLY: French NCLC
     {
       id: 'frenchCLB',
       titleAr: 'الفرنسية (NCLC)؟',
-      subtitleAr: 'مستوى 7+ يفتح سحوبات كندا الفرنسية بنقاط منخفضة (~390).',
+      subtitleAr: 'مستوى 7+ يفتح سحوبات كندا الفرنسية بنقاط منخفضة (~400).',
       titleEn: 'French (NCLC)?',
-      subtitleEn: 'NCLC 7+ unlocks low-cutoff Canadian French draws (~390).',
-      showIf: () => hasCA,
+      subtitleEn: 'NCLC 7+ unlocks low-cutoff Canadian French draws (~400).',
+      showIf: () => isCA,
     },
     {
       id: 'foreignExpYears',
       titleAr: 'سنوات الخبرة المهنية؟',
-      subtitleAr: 'خبرة عمل ماهرة خلال آخر 5–10 سنوات (مهمة لكندا وألمانيا و EB-2 NIW بأمريكا).',
-      titleEn: 'Skilled work experience?',
-      subtitleEn: 'Crucial for Canada CRS, Germany Chancenkarte & US EB-2 NIW.',
+      subtitleAr: isCA
+        ? 'خبرة عمل ماهرة خارج كندا خلال آخر 10 سنوات.'
+        : isDE
+          ? 'في بطاقة الفرص الألمانية: 5+ سنوات تمنح +3 نقاط، وسنتان تمنح +2 نقطة.'
+          : 'في أمريكا: بكالوريوس + 5 سنوات خبرة يعادل الماجستير للتقديم الذاتي على الجرين كارد EB-2 NIW.',
+      titleEn: 'Skilled Work Experience?',
+      subtitleEn: isCA
+        ? 'Skilled work outside Canada within the last 10 years.'
+        : isDE
+          ? 'Chancenkarte: 5+ yrs = +3 pts, 2–4 yrs = +2 pts (last 5–7 years).'
+          : 'USA: Bachelor’s + 5 yrs progressive experience equals a Master’s for EB-2 NIW self-petition.',
     },
+    // ── CANADA ONLY: Canadian Work Experience
     {
       id: 'canadianExpYears',
       titleAr: 'الخبرة داخل كندا؟',
       subtitleAr: 'خبرة عمل بتصريح قانوني داخل كندا.',
-      titleEn: 'Canadian work?',
-      subtitleEn: 'Authorized skilled work in Canada.',
-      showIf: () => hasCA,
+      titleEn: 'Canadian Work Experience?',
+      subtitleEn: 'Authorized skilled work inside Canada.',
+      showIf: () => isCA,
     },
     {
       id: 'occupationFields',
       titleAr: 'مجال المهنة؟',
-      subtitleAr: 'المهن المطلوبة تمنح نقاطاً إضافية في كندا وألمانيا وأمريكا.',
-      titleEn: 'Occupation field?',
-      subtitleEn: 'Shortage fields unlock priority draws in CA, DE & US.',
+      subtitleAr: isCA
+        ? 'سحوبات الفئات في كندا تتطلب 12 شهراً من الخبرة.'
+        : isDE
+          ? 'المهن المطلوبة (Mangelberufe) تمنح +1 نقطة وتخفض شرط راتب البطاقة الزرقاء إلى 45,934€.'
+          : 'تخصصات STEM تمنح 36 شهراً عمل OPT، والتمريض/العلاج الطبيعي له مسار جرين كارد سريع Schedule A.',
+      titleEn: 'Occupation Field?',
+      subtitleEn: isCA
+        ? 'Category draws in Canada require 12+ months experience.'
+        : isDE
+          ? 'Shortage fields (Mangelberufe) award +1 Chancenkarte pt & lower Blue Card salary (€45,934).'
+          : 'STEM unlocks 36-mo OPT; Nurses & PTs qualify for Schedule A fast-track Green Card.',
       isMulti: true,
     },
+    // ── US ONLY: Self-Petition & Extraordinary Profile (EB-2 NIW / EB-1A / O-1)
+    {
+      id: 'usExtraordinaryProfile',
+      titleAr: 'مؤهلات التقديم الذاتي والتميز المهني لأمريكا (EB-2 NIW / EB-1A / O-1)؟',
+      subtitleAr: 'حدد أي ميزة تنطبق عليك للتقديم على الجرين كارد المباشر بدون كفيل أو تأشيرة O-1.',
+      titleEn: 'US Self-Petition & Extraordinary Achievements (EB-2 NIW / EB-1A / O-1)?',
+      subtitleEn: 'Select all that apply for self-petition Green Cards (no employer needed) or O-1.',
+      isMulti: true,
+      showIf: () => isUS,
+    },
+    // ── CANADA ONLY: Canadian Job Offer & Province
     {
       id: 'jobOffer',
-      titleAr: 'عرض عمل رسمي؟',
-      subtitleAr: 'هل لديك عرض عمل من صاحب عمل في كندا أو ألمانيا أو أمريكا؟',
-      titleEn: 'Official job offer?',
-      subtitleEn: 'Do you hold a job offer in Canada, Germany, or the USA?',
+      titleAr: 'عرض عمل رسمي في كندا؟',
+      subtitleAr: 'مطلوب لتصاريح العمل وبرامج الأطلسي والريف والمقاطعات.',
+      titleEn: 'Official Job Offer in Canada?',
+      subtitleEn: 'Required for Canadian work permits, AIP, RCIP, and PNPs.',
+      showIf: () => isCA,
     },
     {
       id: 'jobOfferProvince',
-      titleAr: 'مقاطعة العمل بكندا؟',
-      titleEn: 'Canadian job province?',
-      showIf: (p) => hasCA && p.jobOffer === 'yes',
+      titleAr: 'مقاطعة العمل في كندا؟',
+      titleEn: 'Canadian Job Province?',
+      showIf: (p) => isCA && p.jobOffer === 'yes',
     },
+    // ── GERMANY ONLY: German Job Offer / Ausbildung / University Admission
+    {
+      id: 'deJobOfferType',
+      titleAr: 'عرض عمل أو عقد تدريب أو قبول جامعي في ألمانيا؟',
+      subtitleAr: 'حدد نوع العقد إن وجد (أو اختر "لا يوجد" للبحث عن عمل عبر بطاقة الفرص Chancenkarte).',
+      titleEn: 'German Job Offer, Ausbildung Contract, or University Admission?',
+      subtitleEn: 'Select your offer type (or "None" to apply via the Opportunity Card Chancenkarte).',
+      showIf: () => isDE,
+    },
+    // ── US ONLY: US Job Offer / Multinational Transfer / Form I-20
+    {
+      id: 'usJobOfferType',
+      titleAr: 'عرض عمل أو نقل شركة أو قبول جامعي في أمريكا؟',
+      subtitleAr: 'الجامعات والمراكز البحثية معفاة من قرعة H-1B طوال العام (Cap-Exempt).',
+      titleEn: 'US Job Offer, Multinational Transfer, or University Form I-20?',
+      subtitleEn: 'US universities & research hospitals are 100% exempt from the H-1B lottery cap.',
+      showIf: () => isUS,
+    },
+    // ── CANADA ONLY: Relatives in Canada & Province
     {
       id: 'relativesCitizenPR',
-      titleAr: 'أقارب بالخارج (مواطن / إقامة دائمة)؟',
-      subtitleAr: 'للكفالة العائلية ولم الشمل في كندا أو ألمانيا أو أمريكا.',
-      titleEn: 'Family abroad (Citizen / PR)?',
-      subtitleEn: 'For family reunification in Canada, Germany, or USA.',
+      titleAr: 'أقارب في كندا (مواطن أو مقيم دائم)؟',
+      subtitleAr: 'للكفالة العائلية، أو +15 نقطة للأخ/الأخت، أو السوبر فيزا للوالدين والأجداد.',
+      titleEn: 'Relatives in Canada (Citizen or PR)?',
+      subtitleEn: 'For family sponsorship, +15 CRS sibling points, or Parent/Grandparent Super Visa.',
       isMulti: true,
+      showIf: () => isCA,
     },
     {
       id: 'relativesProvinces',
-      titleAr: 'مقاطعة الأقارب بكندا؟',
-      titleEn: 'Relatives province in Canada?',
+      titleAr: 'مقاطعة الأقارب في كندا؟',
+      titleEn: 'Relatives’ Province in Canada?',
       isMulti: true,
       showIf: (p) =>
-        hasCA &&
+        isCA &&
         p.relativesCitizenPR !== undefined &&
         p.relativesCitizenPR.length > 0,
+    },
+    // ── GERMANY ONLY: Relatives in Germany (§§ 27–36 AufenthG)
+    {
+      id: 'deRelatives',
+      titleAr: 'أقارب مقيمون في ألمانيا (لم الشمل العائلي §§ 27–36 AufenthG)؟',
+      subtitleAr: 'ألمانيا تسمح بلم شمل الزوج/الزوجة والأطفال القصر، وكذلك والدي حاملي البطاقة الزرقاء والعمالة الماهرة الجدد.',
+      titleEn: 'Family Members in Germany (Familiennachzug §§ 27–36 AufenthG)?',
+      subtitleEn: 'Germany allows spouses, minor children, and parents of post-2024 Skilled Workers/Blue Card holders.',
+      isMulti: true,
+      showIf: () => isDE,
+    },
+    // ── US ONLY: Relatives in the United States (Form I-130 / K-1)
+    {
+      id: 'usRelatives',
+      titleAr: 'أقارب في الولايات المتحدة (كفالة الجرين كارد العائلي I-130 / K-1)؟',
+      subtitleAr: 'الأقارب المباشرون لمواطن أمريكي (الزوج/الزوجة، الوالدان، والأطفال دون 21) لهم تأشيرات فورية غير محدودة.',
+      titleEn: 'Family Members in the United States (Form I-130 / K-1)?',
+      subtitleEn: 'Immediate Relatives of a US Citizen (Spouse, Parent, Unmarried Child <21) have NO quota backlog.',
+      isMulti: true,
+      showIf: () => isUS,
     },
     {
       id: 'fearOfReturn',
       titleAr: 'حماية / لجوء؟',
-      subtitleAr: 'لتقييم مسارات اللجوء وإعادة التوطين عبر المفوضية UNHCR أو الكفالة.',
-      titleEn: 'Refugee protection?',
-      subtitleEn: 'For asylum & UNHCR resettlement pathways (CA, DE, US).',
+      subtitleAr: isCA
+        ? 'لتقييم مسارات الكفالة الخاصة SAH أو إعادة التوطين عبر المفوضية UNHCR.'
+        : isDE
+          ? 'لتقييم مسار إعادة التوطين الأممي UNHCR إلى ألمانيا أو اللجوء الداخلي BAMF.'
+          : 'لتقييم اللجوء داخل أمريكا (Form I-589) أو برنامج إعادة التوطين الخارجي USRAP.',
+      titleEn: 'Refugee Protection / Asylum?',
+      subtitleEn: isCA
+        ? 'For Canadian SAH private sponsorship or UNHCR resettlement.'
+        : isDE
+          ? 'For UNHCR resettlement to Germany or inland BAMF asylum.'
+          : 'For US Asylum (Form I-589), USRAP overseas resettlement, or TPS.',
     },
     {
       id: 'refugeeBackground',
-      titleAr: 'وثائق الحماية؟',
+      titleAr: 'وثائق الحماية والتسجيل؟',
       subtitleAr: 'اختر ما يتوفر لديك حالياً.',
-      titleEn: 'Protection docs?',
+      titleEn: 'Protection Documents?',
       subtitleEn: 'Select all that apply.',
       isMulti: true,
       showIf: (p) =>
@@ -194,19 +319,39 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
         p.residenceStatus === 'temporary_protection' ||
         p.residenceStatus === 'refugee_recognized',
     },
+    // ── CANADA ONLY: Funds in CAD ($ CAD)
     {
       id: 'fundsCAD',
       titleAr: 'المدخرات المتوفرة (بالدولار الكندي CAD)؟',
-      subtitleAr: 'الحساب المغلق بألمانيا ~18,000$ CAD (11,904€–13,092€)، وكندا FSW 15,263$.',
-      titleEn: 'Available savings (in CAD)?',
-      subtitleEn: 'Germany Blocked Account ~18k CAD (€11.9k–€13.1k); Canada FSW $15,263.',
+      subtitleAr: 'برنامج FSW يتطلب 15,263$ كندي للفرد، وتأشيرة الدراسة تتطلب 23,448$ كندي.',
+      titleEn: 'Settlement Funds (in Canadian Dollars — CAD)?',
+      subtitleEn: '2026 IRCC rules: $15,263 CAD for FSW (single), $23,448 CAD for Study Permit.',
+      showIf: () => isCA,
+    },
+    // ── GERMANY ONLY: Blocked Account / Funds in EUR (€ EUR)
+    {
+      id: 'deFundsEUR',
+      titleAr: 'القدرة المالية / الحساب المغلق في ألمانيا (باليورو € EUR)؟',
+      subtitleAr: 'في 2026: بطاقة الفرص تتطلب 13,092€ (1,091€/شهرياً) والدراسة تتطلب 11,904€ (992€/شهرياً).',
+      titleEn: 'Blocked Account (Sperrkonto) / Savings in Euros (€ EUR)?',
+      subtitleEn: '2026 rules: €13,092/yr (€1,091/mo) for Chancenkarte; €11,904/yr (€992/mo) for Study Visa.',
+      showIf: () => isDE,
+    },
+    // ── US ONLY: Funds / Investment Capital in USD ($ USD)
+    {
+      id: 'usFundsUSD',
+      titleAr: 'المدخرات أو رأس مال الاستثمار في أمريكا (بالدولار الأمريكي $ USD)؟',
+      subtitleAr: 'تأشيرة الدراسة F-1 تتطلب ~25,000$، وتأشيرة المستثمر E-2 ~100,000$+، والجرين كارد الاستثماري EB-5 800,000$.',
+      titleEn: 'Available Funds / Investment Capital (in US Dollars — $ USD)?',
+      subtitleEn: 'F-1 Study I-20 ~$25,000+; E-2 Treaty Investor ~$100,000+; EB-5 Green Card $800,000.',
+      showIf: () => isUS,
     },
     {
       id: 'admissibility',
-      titleAr: 'السجل الجنائي؟',
+      titleAr: 'السجل الجنائي والهجرة؟',
       subtitleAr: 'شرط أساسي لجميع التأشيرات والإقامات الدائمة.',
-      titleEn: 'Clean record?',
-      subtitleEn: 'Required for visas and permanent residence.',
+      titleEn: 'Criminal & Immigration Record?',
+      subtitleEn: 'Required for all visas and permanent residence pathways.',
     },
   ];
 
@@ -1312,6 +1457,504 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
                   isAr ? opt.labelAr : opt.labelEn,
                   isAr ? opt.hintAr : opt.hintEn,
                   () => handleSingleSelect('fundsCAD', opt.val),
+                ),
+              )}
+            </div>
+          )}
+
+          {/* ── GERMANY ONLY: Credential Recognition (ANABIN / ZAB) */}
+          {currentStep.id === 'deDegreeRecognition' && (
+            <div className="option-list">
+              {[
+                {
+                  val: 'full_anabin',
+                  labelAr: 'معادلة كاملة في ألمانيا (أو مصنفة H+ ومطابقة في ANABIN)',
+                  hintAr: 'تؤهلك مباشرة لبطاقة الفرص (Chancenkarte) والبطاقة الزرقاء بدون الحاجة لجمع 6 نقاط.',
+                  labelEn: 'Fully Recognized in Germany (ANABIN H+ & Equivalent)',
+                  hintEn: 'Qualifies directly for Chancenkarte & EU Blue Card without needing 6 points.',
+                },
+                {
+                  val: 'partial_adaptation',
+                  labelAr: 'معادلة جزئية تحتاج تدريب تكميلي (Defizitbescheid)',
+                  hintAr: 'تمنحك +4 نقاط دفعة واحدة في بطاقة الفرص الألمانية وتؤهلك لشراكة المعادلة (§ 16d).',
+                  labelEn: 'Partially Recognized (Needs Adaptation / Defizitbescheid)',
+                  hintEn: 'Awards +4 points immediately on the Chancenkarte grid.',
+                },
+                {
+                  val: 'home_recognized',
+                  labelAr: 'شهادة جامعية أو دبلوم (سنتين+) معترف به في بلد الإصدار فقط',
+                  hintAr: 'يفتح نظام النقاط لبطاقة الفرص الألمانية (6 نقاط) ومسار أصحاب الخبرة (§ 19c).',
+                  labelEn: 'Recognized in Home Country (2+ Yr Diploma or Degree, not assessed in DE yet)',
+                  hintEn: 'Unlocks the 6-point Chancenkarte grid and Experienced Worker visa.',
+                },
+                {
+                  val: 'none',
+                  labelAr: 'ثانوية عامة فقط / لا توجد شهادة جامعية أو مهنية',
+                  hintAr: 'يمكنك التقديم على الدراسة الجامعية أو التدريب المهني المزدوج (Ausbildung).',
+                  labelEn: 'High School Only / No Post-Secondary Diploma',
+                  hintEn: 'Eligible for German University Study or paid Ausbildung vocational training.',
+                },
+              ].map((opt) =>
+                renderOptionWithBang(
+                  opt.val,
+                  profile.deDegreeRecognition === opt.val,
+                  isAr ? opt.labelAr : opt.labelEn,
+                  isAr ? opt.hintAr : opt.hintEn,
+                  () => handleSingleSelect('deDegreeRecognition', opt.val),
+                ),
+              )}
+            </div>
+          )}
+
+          {/* ── GERMANY ONLY: German Job Offer / Ausbildung / University Admission */}
+          {currentStep.id === 'deJobOfferType' && (
+            <div className="option-list">
+              {[
+                {
+                  val: 'none',
+                  labelAr: 'لا يوجد عرض عمل حالياً (أرغب بالبحث عن عمل عبر بطاقة الفرص Chancenkarte)',
+                  hintAr: 'بطاقة الفرص الألمانية لا تشترط أي عرض عمل مسبق.',
+                  labelEn: 'No Job Offer Yet (Applying via Chancenkarte Job Seeker Visa)',
+                  hintEn: 'The Opportunity Card does not require a job offer.',
+                },
+                {
+                  val: 'shortage_it_45934',
+                  labelAr: 'عرض عمل في مهنة مطلوبة / IT / خريج جديد براتب ≥ 45,934 يورو سنوياً',
+                  hintAr: 'يؤهلك للبطاقة الزرقاء الأوروبية (EU Blue Card) لعام 2026.',
+                  labelEn: 'Job Offer ≥ €45,934.20/yr (STEM, IT, Healthcare, or New Graduate)',
+                  hintEn: 'Qualifies for the 2026 reduced-threshold EU Blue Card Germany.',
+                },
+                {
+                  val: 'blue_card_50700',
+                  labelAr: 'عرض عمل براتب ≥ 50,700 يورو سنوياً (أي تخصص جامعي)',
+                  hintAr: 'يؤهلك للبطاقة الزرقاء الأوروبية القياسية لعام 2026 (إقامة دائمة خلال 21–27 شهراً).',
+                  labelEn: 'Job Offer ≥ €50,700/yr (Standard EU Blue Card Threshold)',
+                  hintEn: 'Qualifies for standard EU Blue Card (PR in 21–27 months).',
+                },
+                {
+                  val: 'skilled_other',
+                  labelAr: 'عرض عمل ماهر في ألمانيا (براتب أقل من حد البطاقة الزرقاء)',
+                  hintAr: 'يؤهلك لتأشيرة العمالة الماهرة (§ 18a/18b) أو شراكة المعادلة (§ 16d).',
+                  labelEn: 'Other Skilled Job Offer in Germany (Below Blue Card Salary)',
+                  hintEn: 'Qualifies for Skilled Worker Visa (§ 18a/18b) or Recognition Partnership.',
+                },
+                {
+                  val: 'ausbildung_contract',
+                  labelAr: 'عقد تدريب مهني مزدوج مدفوع الأجر (Ausbildungsvertrag)',
+                  hintAr: 'يؤهلك لتأشيرة التدريب المهني (§ 16a AufenthG).',
+                  labelEn: 'Paid Vocational Training Contract (Ausbildungsvertrag)',
+                  hintEn: 'Qualifies for the Ausbildung visa (§ 16a AufenthG).',
+                },
+                {
+                  val: 'uni_admission',
+                  labelAr: 'قبول جامعي من جامعة ألمانية (Zulassungsbescheid)',
+                  hintAr: 'يؤهلك لتأشيرة الدراسة الجامعية في ألمانيا (§ 16b AufenthG).',
+                  labelEn: 'German University Admission (Zulassungsbescheid)',
+                  hintEn: 'Qualifies for the German Student Visa (§ 16b AufenthG).',
+                },
+              ].map((opt) =>
+                renderOptionWithBang(
+                  opt.val,
+                  profile.deJobOfferType === opt.val,
+                  isAr ? opt.labelAr : opt.labelEn,
+                  isAr ? opt.hintAr : opt.hintEn,
+                  () => handleSingleSelect('deJobOfferType', opt.val),
+                ),
+              )}
+            </div>
+          )}
+
+          {/* ── GERMANY ONLY: Family Members in Germany */}
+          {currentStep.id === 'deRelatives' && (
+            <div>
+              <div className="option-list">
+                {[
+                  {
+                    val: 'none',
+                    labelAr: 'لا يوجد أقارب من الدرجة الأولى في ألمانيا',
+                    labelEn: 'No nuclear family members in Germany',
+                  },
+                  {
+                    val: 'spouse_partner',
+                    labelAr: 'زوج / زوجة (أو شريك مسجل) مقيم قانونياً أو مواطن في ألمانيا',
+                    hintAr: 'يؤهلك للم الشمل العائلي الفوري مع حق عمل مفتوح 100% (§§ 28–30 AufenthG).',
+                    labelEn: 'Spouse / Registered Partner in Germany (Citizen, PR, Blue Card, or Skilled Worker)',
+                    hintEn: 'Eligible for immediate Family Reunification with unrestricted work rights.',
+                  },
+                  {
+                    val: 'minor_child_or_parent_of_minor',
+                    labelAr: 'طفل قاصر في ألمانيا (أو والداي في ألمانيا وأنا دون 18 عاماً)',
+                    hintAr: 'يؤهلك للم شمل الأسرة المباشر (§§ 28, 32, 36 AufenthG).',
+                    labelEn: 'Minor Child in Germany (or Parent in Germany if you are under 18)',
+                    hintEn: 'Eligible for direct nuclear family reunification.',
+                  },
+                  {
+                    val: 'parent_of_skilled_worker',
+                    labelAr: 'ابني / ابنتي في ألمانيا يحمل البطاقة الزرقاء أو إقامة عمالة ماهرة (صدرت بعد مارس 2024)',
+                    hintAr: 'القانون الألماني الجديد (§ 36(3) AufenthG) يسمح باستقدام الوالدين ووالدي الزوج/الزوجة!',
+                    labelEn: 'My Adult Child in Germany holds a post-March-2024 EU Blue Card or Skilled Worker Permit',
+                    hintEn: 'New § 36(3) AufenthG allows skilled workers to sponsor their parents!',
+                  },
+                  {
+                    val: 'other_relative',
+                    labelAr: 'أخ / أخت / عم / خال / جد (درجة ثانية أو ثالثة)',
+                    hintAr: 'تنبيه: ألمانيا لا تمنح إقامة لم شمل للأخوة أو الأجداد، لكن يمكنهم عمل كفالة مالية (Verpflichtungserklärung) للدراسة أو بطاقة الفرص.',
+                    labelEn: 'Sibling / Grandparent / Uncle / Cousin in Germany',
+                    hintEn: 'Note: Cannot sponsor family PR in Germany, but can sign a financial Verpflichtungserklärung for your Study or Chancenkarte visa.',
+                  },
+                ].map((opt) => {
+                  const current = profile.deRelatives || [];
+                  const isNone = opt.val === 'none';
+                  const selected = isNone
+                    ? current.length === 0
+                    : current.includes(opt.val as any);
+                  return renderOptionWithBang(
+                    opt.val,
+                    selected,
+                    isAr ? opt.labelAr : opt.labelEn,
+                    isAr ? opt.hintAr : opt.hintEn,
+                    () => {
+                      if (isNone) {
+                        setField('deRelatives', []);
+                      } else {
+                        const updated = selected
+                          ? current.filter((x) => (x as string) !== opt.val)
+                          : [...current, opt.val as any];
+                        setField('deRelatives', updated);
+                      }
+                    },
+                  );
+                })}
+              </div>
+
+              <div style={{ marginTop: 24 }}>
+                <button type="button" onClick={goNext} className="btn-continue">
+                  {isAr ? 'التالي ←' : 'Next →'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── GERMANY ONLY: Blocked Account / Funds in EUR (€ EUR) */}
+          {currentStep.id === 'deFundsEUR' && (
+            <div className="option-list">
+              {[
+                {
+                  val: 14000,
+                  labelAr: '13,092 يورو فأكثر (أو كفيل رسمي Verpflichtungserklärung)',
+                  hintAr: 'يغطي الحساب المغلق لبطاقة الفرص الألمانية 2026 (1,091 يورو/شهرياً) وتأشيرة الدراسة (11,904 يورو).',
+                  labelEn: '€13,092+ EUR (or Formal Sponsor Verpflichtungserklärung)',
+                  hintEn: 'Covers both 2026 Chancenkarte (€13,092/yr) and Study Visa (€11,904/yr) blocked accounts.',
+                },
+                {
+                  val: 12000,
+                  labelAr: '11,904 – 13,091 يورو',
+                  hintAr: 'يغطي الحساب المغلق لتأشيرة الدراسة في ألمانيا لعام 2026 (992 يورو/شهرياً).',
+                  labelEn: '€11,904 – €13,091 EUR',
+                  hintEn: 'Covers the 2026 German Student Visa blocked account (€992/month).',
+                },
+                {
+                  val: 6000,
+                  labelAr: '5,000 – 11,900 يورو',
+                  hintAr: 'تأشيرات العمل والبطاقة الزرقاء والتدريب المهني (Ausbildung) لا تتطلب حساباً مغلقاً لأن الراتب يغطي المعيشة.',
+                  labelEn: '€5,000 – €11,900 EUR',
+                  hintEn: 'Work visas, EU Blue Card, and Ausbildung do NOT require a blocked account.',
+                },
+                {
+                  val: 1000,
+                  labelAr: 'أقل من 5,000 يورو',
+                  hintAr: 'مناسب لمن لديه عقد عمل أو عقد تدريب مهني مدفوع (Ausbildung) أو عقد عمل جزئي (20 ساعة/أسبوع).',
+                  labelEn: 'Under €5,000 EUR',
+                  hintEn: 'Suitable if you have a job offer, Ausbildung salary, or 20 hr/wk part-time contract.',
+                },
+              ].map((opt) =>
+                renderOptionWithBang(
+                  String(opt.val),
+                  profile.deFundsEUR === opt.val,
+                  isAr ? opt.labelAr : opt.labelEn,
+                  isAr ? opt.hintAr : opt.hintEn,
+                  () => handleSingleSelect('deFundsEUR', opt.val),
+                ),
+              )}
+            </div>
+          )}
+
+          {/* ── US ONLY: DV Lottery Country of Birth */}
+          {currentStep.id === 'usDvEligibleBirth' && (
+            <div className="option-list">
+              {[
+                {
+                  val: 'yes',
+                  labelAr: 'نعم — ولدتُ (أو ولد زوجي/زوجتي) في دولة مؤهلة للوتري الأمريكي',
+                  hintAr: 'جميع الدول العربية والشرق الأوسط (سوريا، الأردن، مصر، لبنان، العراق، السعودية، الإمارات، المغرب، الجزائر، تونس، السودان، اليمن، إلخ) وأوروبا وأفريقيا مؤهلة 100%.',
+                  labelEn: 'Yes — Born in a DV-Eligible Country (or spouse born in an eligible country)',
+                  hintEn: 'All Arab/MENA countries, Europe, Central Asia, and most of Africa are 100% eligible.',
+                },
+                {
+                  val: 'no',
+                  labelAr: 'لا — ولدتُ في دولة مستثناة من اللوتري (مثل كندا، الهند، الصين، المكسيك، الفلبين)',
+                  hintAr: 'الدول التي أرسلت أكثر من 50,000 مهاجر لأمريكا خلال آخر 5 سنوات تُستثنى من القرعة.',
+                  labelEn: 'No — Born in a high-admission excluded country (e.g., Canada, India, China, Mexico, Philippines)',
+                  hintEn: 'Countries with >50,000 US immigrants in the past 5 years are excluded from DV Lottery.',
+                },
+              ].map((opt) =>
+                renderOptionWithBang(
+                  opt.val,
+                  profile.usDvEligibleBirth === opt.val,
+                  isAr ? opt.labelAr : opt.labelEn,
+                  isAr ? opt.hintAr : opt.hintEn,
+                  () => handleSingleSelect('usDvEligibleBirth', opt.val),
+                ),
+              )}
+            </div>
+          )}
+
+          {/* ── US ONLY: Self-Petition & Extraordinary Achievements (EB-2 NIW / EB-1A / O-1) */}
+          {currentStep.id === 'usExtraordinaryProfile' && (
+            <div>
+              <div className="option-list">
+                {[
+                  {
+                    val: 'none',
+                    labelAr: 'لا ينطبق / مسار عادي',
+                    labelEn: 'None of these / Standard profile',
+                  },
+                  {
+                    val: 'niw_endeavor',
+                    labelAr: 'مشروع أو تخصص ذو أهمية وطنية لأمريكا (STEM، طب، ذكاء اصطناعي، طاقة، أبحاث، ريادة أعمال)',
+                    hintAr: 'يفتح الجرين كارد المباشر EB-2 NIW بالتقديم الذاتي بدون الحاجة لصاحب عمل أمريكي!',
+                    labelEn: 'Proposed Work/Project of National Importance to the US (STEM, Healthcare, AI, Research, Entrepreneurship)',
+                    hintEn: 'Unlocks EB-2 NIW Self-Petition Green Card without needing a US employer!',
+                  },
+                  {
+                    val: 'publications_citations',
+                    labelAr: 'أبحاث علمية منشورة، اقتباسات (Citations)، أو تحكيم أعمال الآخرين (Peer Review)',
+                    hintAr: 'قوي جداً لملفات EB-1A وEB-2 NIW وتأشيرة O-1.',
+                    labelEn: 'Published Papers, Citations, or Peer-Review / Judging Others’ Work',
+                    hintEn: 'Strong evidence for EB-1A, EB-2 NIW, and O-1A criteria.',
+                  },
+                  {
+                    val: 'critical_role_high_salary',
+                    labelAr: 'منصب قيادي/حيوي في شركة مرموقة أو شركة ناشئة، أو راتب مرتفع مقارنة بأقرانك',
+                    hintAr: 'يحقق معيارين رئيسيين في الجرين كارد EB-1A وتأشيرة O-1.',
+                    labelEn: 'Critical / Leading Role at a Distinguished Company/Startup OR High Remuneration',
+                    hintEn: 'Satisfies key USCIS criteria for EB-1A and O-1.',
+                  },
+                  {
+                    val: 'awards_media_judging',
+                    labelAr: 'جوائز وطنية/دولية، تمويل استثماري (VC)، أو تغطية إعلامية بارزة لأعمالك',
+                    hintAr: 'يدعم التقديم السريع خلال 15 يوم عمل على EB-1A وO-1.',
+                    labelEn: 'National/International Awards, VC Funding, or Major Press/Media Coverage',
+                    hintEn: 'Supports 15-day Premium Processing for EB-1A and O-1.',
+                  },
+                ].map((opt) => {
+                  const current = profile.usExtraordinaryProfile || [];
+                  const isNone = opt.val === 'none';
+                  const selected = isNone
+                    ? current.length === 0
+                    : current.includes(opt.val as any);
+                  return renderOptionWithBang(
+                    opt.val,
+                    selected,
+                    isAr ? opt.labelAr : opt.labelEn,
+                    isAr ? opt.hintAr : opt.hintEn,
+                    () => {
+                      if (isNone) {
+                        setField('usExtraordinaryProfile', []);
+                      } else {
+                        const updated = selected
+                          ? current.filter((x) => (x as string) !== opt.val)
+                          : [...current, opt.val as any];
+                        setField('usExtraordinaryProfile', updated);
+                      }
+                    },
+                  );
+                })}
+              </div>
+
+              <div style={{ marginTop: 24 }}>
+                <button type="button" onClick={goNext} className="btn-continue">
+                  {isAr ? 'التالي ←' : 'Next →'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── US ONLY: US Job Offer / Multinational Transfer / Form I-20 */}
+          {currentStep.id === 'usJobOfferType' && (
+            <div className="option-list">
+              {[
+                {
+                  val: 'none',
+                  labelAr: 'لا يوجد عرض عمل أمريكي حالياً (أركز على التقديم الذاتي EB-2 NIW أو اللوتري أو العائلة أو الدراسة)',
+                  labelEn: 'No US Job Offer Yet (Focusing on Self-Petition EB-2 NIW, DV Lottery, Family, or Study)',
+                },
+                {
+                  val: 'h1b_cap',
+                  labelAr: 'عرض عمل تخصصي من شركة أمريكية مستعدة لتسجيلي في قرعة H-1B',
+                  hintAr: 'قرعة H-1B تجري في شهر مارس من كل عام لحاملي البكالوريوس فأعلى.',
+                  labelEn: 'US Specialty Occupation Job Offer (H-1B Lottery Registration)',
+                  hintEn: 'Annual H-1B electronic registration runs each March.',
+                },
+                {
+                  val: 'cap_exempt_uni_nonprofit',
+                  labelAr: 'عرض عمل من جامعة أمريكية أو مستشفى تعليمي أو مركز أبحاث غير ربحي (Cap-Exempt)',
+                  hintAr: 'معفى 100% من قرعة H-1B ويمكن التقديم عليه في أي يوم من السنة، ويؤهل أيضاً لـ EB-1B!',
+                  labelEn: 'Job Offer from a US University, Teaching Hospital, or Nonprofit Research Institute (Cap-Exempt)',
+                  hintEn: '100% exempt from the H-1B lottery cap year-round & qualifies for EB-1B!',
+                },
+                {
+                  val: 'l1_multinational',
+                  labelAr: 'أعمل في شركة لها فرع/شركة شقيقة في أمريكا (أو أملك شركة وأريد فتح فرع أمريكي L-1A)',
+                  hintAr: 'يؤهلك لتأشيرة النقل الداخلي L-1A/L-1B والجرين كارد المباشر للمديرين EB-1C بدون PERM!',
+                  labelEn: 'Employed at a Multinational Company with a US Branch (or Opening a New US Office — L-1A/EB-1C)',
+                  hintEn: 'Qualifies for L-1A/L-1B transfer and EB-1C Executive Green Card without PERM!',
+                },
+                {
+                  val: 'perm_eb2_eb3',
+                  labelAr: 'عرض عمل دائم من صاحب عمل أمريكي لكفالة الجرين كارد (EB-2 / EB-3 PERM أو ممرض Schedule A)',
+                  hintAr: 'يؤهلك للجرين كارد الدائم عبر شهادة وزارة العمل PERM.',
+                  labelEn: 'Permanent Full-Time US Job Offer for Green Card Sponsorship (EB-2 / EB-3 PERM or Schedule A Nurse)',
+                  hintEn: 'Qualifies for employer-sponsored EB-2 / EB-3 Green Card.',
+                },
+                {
+                  val: 'i20_ds2019_admission',
+                  labelAr: 'قبول جامعي أمريكي (Form I-20 لتأشيرة F-1) أو قبول تبادل/إقامة طبية (DS-2019 لتأشيرة J-1)',
+                  hintAr: 'يمنح خريجي تخصصات STEM تصريح عمل مفتوح لمدة 36 شهراً (3 سنوات) بعد التخرج.',
+                  labelEn: 'US University Admission (Form I-20 for F-1) or Exchange/Medical Residency (Form DS-2019 for J-1)',
+                  hintEn: 'STEM graduates receive 36 months (3 years) of OPT US work authorization.',
+                },
+              ].map((opt) =>
+                renderOptionWithBang(
+                  opt.val,
+                  profile.usJobOfferType === opt.val,
+                  isAr ? opt.labelAr : opt.labelEn,
+                  isAr ? opt.hintAr : opt.hintEn,
+                  () => handleSingleSelect('usJobOfferType', opt.val),
+                ),
+              )}
+            </div>
+          )}
+
+          {/* ── US ONLY: Family Members in the United States */}
+          {currentStep.id === 'usRelatives' && (
+            <div>
+              <div className="option-list">
+                {[
+                  {
+                    val: 'none',
+                    labelAr: 'لا يوجد أقارب مباشرون في الولايات المتحدة',
+                    hintAr: 'ملاحظة: الأجداد والأعمام والأخوال وأبناء العم لا يحق لهم كفالة الجرين كارد في القانون الأمريكي.',
+                    labelEn: 'No qualifying US Citizen or Green Card relatives',
+                    hintEn: 'Note: Grandparents, uncles, aunts, and cousins cannot sponsor a US Green Card.',
+                  },
+                  {
+                    val: 'usc_spouse_fiance',
+                    labelAr: 'زوج / زوجة أو خطيب(ة) يحمل الجنسية الأمريكية (US Citizen)',
+                    hintAr: 'فئة الأقارب المباشرين (Immediate Relative / K-1) — تأشيرات فورية غير محدودة بدون طابور انتظار!',
+                    labelEn: 'Spouse or Fiancé(e) is a U.S. Citizen',
+                    hintEn: 'Immediate Relative (I-130) or K-1 Fiancé(e) — UNLIMITED visas with no quota backlog!',
+                  },
+                  {
+                    val: 'usc_child_21plus',
+                    labelAr: 'ابن / ابنة يحمل الجنسية الأمريكية وعمره 21 سنة فأكثر',
+                    hintAr: 'يحق للابن الأمريكي البالغ (21+) كفالة والديه فوراً كأقارب مباشرين بدون طابور انتظار سنوي!',
+                    labelEn: 'My Child is a U.S. Citizen age 21 or older',
+                    hintEn: 'Parents of US Citizens (21+) are Immediate Relatives — no annual visa cap!',
+                  },
+                  {
+                    val: 'usc_parent_under21',
+                    labelAr: 'أب / أم يحمل الجنسية الأمريكية (وأنا غير متزوج وعمري أقل من 21 سنة)',
+                    hintAr: 'فئة الأقارب المباشرين (IR-2) — بدون طابور انتظار (وقد تستحق الجنسية المباشرة N-600).',
+                    labelEn: 'My Parent is a U.S. Citizen (and I am unmarried under age 21)',
+                    hintEn: 'Immediate Relative (IR-2) — unlimited visas with no backlog.',
+                  },
+                  {
+                    val: 'lpr_spouse_or_unmarried_child',
+                    labelAr: 'زوج / زوجة أو أب / أم يحمل الجرين كارد الأمريكي (Lawful Permanent Resident)',
+                    hintAr: 'فئة الأفضلية العائلية F2A / F2B (للزوج/الزوجة والأبناء غير المتزوجين فقط).',
+                    labelEn: 'Spouse or Parent is a U.S. Green Card Holder (for Spouse or Unmarried Child)',
+                    hintEn: 'Qualifies under Family Preference F2A / F2B.',
+                  },
+                  {
+                    val: 'usc_sibling_or_adult_child',
+                    labelAr: 'أخ / أخت يحمل الجنسية الأمريكية (أو أب/أم أمريكي وأنا فوق 21 سنة أو متزوج)',
+                    hintAr: 'فئات الأفضلية العائلية F1 / F3 / F4 (متاحة رسمياً عبر نموذج I-130 وتخضع لطابور النشرة الشهرية).',
+                    labelEn: 'Sibling is a U.S. Citizen (or Parent is a U.S. Citizen and I am 21+ or married)',
+                    hintEn: 'Qualifies under Family Preference F1 / F3 / F4 (subject to Visa Bulletin wait times).',
+                  },
+                ].map((opt) => {
+                  const current = profile.usRelatives || [];
+                  const isNone = opt.val === 'none';
+                  const selected = isNone
+                    ? current.length === 0
+                    : current.includes(opt.val as any);
+                  return renderOptionWithBang(
+                    opt.val,
+                    selected,
+                    isAr ? opt.labelAr : opt.labelEn,
+                    isAr ? opt.hintAr : opt.hintEn,
+                    () => {
+                      if (isNone) {
+                        setField('usRelatives', []);
+                      } else {
+                        const updated = selected
+                          ? current.filter((x) => (x as string) !== opt.val)
+                          : [...current, opt.val as any];
+                        setField('usRelatives', updated);
+                      }
+                    },
+                  );
+                })}
+              </div>
+
+              <div style={{ marginTop: 24 }}>
+                <button type="button" onClick={goNext} className="btn-continue">
+                  {isAr ? 'التالي ←' : 'Next →'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── US ONLY: Available Funds / Investment Capital in USD ($ USD) */}
+          {currentStep.id === 'usFundsUSD' && (
+            <div className="option-list">
+              {[
+                {
+                  val: 850000,
+                  labelAr: '800,000$ دولار أمريكي فأكثر',
+                  hintAr: 'يؤهلك مباشرة للجرين كارد الاستثماري الأمريكي (EB-5 Rural/TEA) لجميع الجنسيات!',
+                  labelEn: '$800,000+ USD',
+                  hintEn: 'Qualifies directly for the US EB-5 Immigrant Investor Green Card ($800k TEA)!',
+                },
+                {
+                  val: 120000,
+                  labelAr: '100,000$ – 799,000$ دولار أمريكي',
+                  hintAr: 'يؤهلك لتأشيرة المستثمر التجاري (E-2 Treaty Investor) لمواطني دول المعاهدة وتأشيرة الدراسة F-1.',
+                  labelEn: '$100,000 – $799,000 USD',
+                  hintEn: 'Meets typical E-2 Treaty Investor business capital (~$100k+) & F-1 Study proof of funds.',
+                },
+                {
+                  val: 30000,
+                  labelAr: '25,000$ – 99,000$ دولار أمريكي (أو منحة جامعية / كفيل عائلي)',
+                  hintAr: 'يغطي إثبات القدرة المالية للسنة الأولى في نموذج I-20 لتأشيرة الدراسة F-1.',
+                  labelEn: '$25,000 – $99,000 USD (or Scholarship / Family Sponsor)',
+                  hintEn: 'Covers typical first-year Form I-20 financial proof for F-1 Student Visas.',
+                },
+                {
+                  val: 5000,
+                  labelAr: 'أقل من 25,000$ دولار أمريكي',
+                  hintAr: 'مسارات اللوتري (DV Lottery) والعمل (H-1B / EB-2 NIW / EB-3) ولم الشمل واللجوء لا تشترط رأس مال.',
+                  labelEn: 'Under $25,000 USD',
+                  hintEn: 'DV Lottery, EB-2 NIW, H-1B, EB-3, Family, and Asylum do NOT require investment capital.',
+                },
+              ].map((opt) =>
+                renderOptionWithBang(
+                  String(opt.val),
+                  profile.usFundsUSD === opt.val,
+                  isAr ? opt.labelAr : opt.labelEn,
+                  isAr ? opt.hintAr : opt.hintEn,
+                  () => handleSingleSelect('usFundsUSD', opt.val),
                 ),
               )}
             </div>

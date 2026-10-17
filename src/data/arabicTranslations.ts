@@ -936,8 +936,16 @@ export function buildCaseSummaryForAI(
   lang: 'ar' | 'en' = 'ar',
 ): string {
   const isAr = lang === 'ar';
+  const activeCountry =
+    profile.activeCountry ??
+    (profile.targetCountries && profile.targetCountries[0]) ??
+    'CA';
+
   const openOutcomes = outcomes.filter(
-    (o) => o.program.availability !== 'closed' && o.program.availability !== 'paused',
+    (o) =>
+      o.program.availability !== 'closed' &&
+      o.program.availability !== 'paused' &&
+      (o.program.country ?? 'CA') === activeCountry,
   );
 
   const getProgName = (o: Outcome) => {
@@ -959,9 +967,6 @@ export function buildCaseSummaryForAI(
         .join('; ')
     : '';
 
-  const targets = profile.targetCountries && profile.targetCountries.length > 0
-    ? profile.targetCountries
-    : ['CA', 'DE', 'US'];
   const chancen = calculateChancenkartePoints(profile);
 
   if (!isAr) {
@@ -973,39 +978,69 @@ export function buildCaseSummaryForAI(
         ? profile.citizenships.map((c) => getCountryDisplayName(c, 'en')).join(', ')
         : 'Not specified';
 
+    const countrySpecificLinesEn: string[] = [];
+    if (activeCountry === 'CA') {
+      countrySpecificLinesEn.push(
+        `• Active Country Evaluated: Canada ONLY (IRCC — canada.ca)`,
+        `• Education: ${profile.education || 'N/A'} (Canadian study: ${
+          profile.canadianEducation && profile.canadianEducation !== 'none' ? 'Yes' : 'No'
+        })`,
+        `• Languages: English CLB ${profile.englishCLB ?? 0} | French NCLC ${profile.frenchCLB ?? 0}`,
+        `• Work Experience: ${profile.foreignExpYears ?? 0} yrs foreign | ${
+          profile.canadianExpYears ?? 0
+        } yrs in Canada (Fields: ${profile.occupationFields?.join(', ') || 'None'})`,
+        `• Canadian Job Offer: ${profile.jobOffer === 'yes' ? 'Yes' : 'No'} | Relatives in Canada: ${
+          profile.relativesCitizenPR && profile.relativesCitizenPR.length > 0
+            ? profile.relativesCitizenPR.join(', ')
+            : 'None'
+        }`,
+        `• Settlement Funds (CAD): $${(profile.fundsCAD ?? 0).toLocaleString()} CAD`,
+        `• Official Scores: Canada CRS ${crs.total}/1200 & FSW ${fsw.total}/100`,
+      );
+    } else if (activeCountry === 'DE') {
+      countrySpecificLinesEn.push(
+        `• Active Country Evaluated: Germany ONLY (Make it in Germany / BAMF)`,
+        `• Education & ANABIN/ZAB Recognition: ${profile.education || 'N/A'} | Recognition: ${
+          profile.deDegreeRecognition || 'not specified'
+        }`,
+        `• Languages: German ${GERMAN_LEVEL_LABEL_EN[profile.germanLevel ?? 0]} | English CLB ${
+          profile.englishCLB ?? 0
+        }`,
+        `• Work Experience: ${profile.foreignExpYears ?? 0} yrs (Fields: ${
+          profile.occupationFields?.join(', ') || 'None'
+        })`,
+        `• German Contract / Admission: ${profile.deJobOfferType || 'none'} | Relatives in Germany (§§ 27–36 AufenthG): ${
+          profile.deRelatives?.join(', ') || 'None'
+        }`,
+        `• Blocked Account / Funds (EUR): €${(
+          profile.deFundsEUR ?? Math.round((profile.fundsCAD ?? 0) * 0.68)
+        ).toLocaleString()} EUR`,
+        `• Official Score: Germany Chancenkarte ${chancen.total} pts (min 6 required, ${
+          chancen.passed ? 'Eligible' : 'Needs points/language'
+        })`,
+      );
+    } else {
+      countrySpecificLinesEn.push(
+        `• Active Country Evaluated: United States ONLY (USCIS — uscis.gov)`,
+        `• Education: ${profile.education || 'N/A'} | DV Lottery Native Country Eligible: ${
+          profile.usDvEligibleBirth || 'not specified'
+        }`,
+        `• Extraordinary / NIW Achievements: ${
+          profile.usExtraordinaryProfile?.join(', ') || 'None selected'
+        }`,
+        `• US Employer Sponsorship / I-20: ${profile.usJobOfferType || 'none'} | Relatives in USA (Form I-130): ${
+          profile.usRelatives?.join(', ') || 'None'
+        }`,
+        `• Available US Funds / Investment (USD): $${(
+          profile.usFundsUSD ?? Math.round((profile.fundsCAD ?? 0) * 0.73)
+        ).toLocaleString()} USD`,
+      );
+    }
+
     return [
-      `• Target Countries Selected: ${targets.join(', ')}`,
-      `• Residence: ${resCountryEn} (Status: ${
-        profile.residenceCountry === 'CA'
-          ? profile.canadaStatus || 'In Canada'
-          : profile.residenceStatus || 'Not specified'
-      })`,
-      `• Citizenship: ${citizenshipsEn} | Age: ${profile.age ?? 'N/A'}`,
-      `• Education: ${profile.education || 'N/A'} (Canadian study: ${
-        profile.canadianEducation && profile.canadianEducation !== 'none' ? 'Yes' : 'No'
-      })`,
-      `• Languages: English CLB ${profile.englishCLB ?? 0} | French NCLC ${profile.frenchCLB ?? 0} | German: ${
-        GERMAN_LEVEL_LABEL_EN[profile.germanLevel ?? 0]
-      }`,
-      `• Work Experience: ${profile.foreignExpYears ?? 0} yrs foreign | ${
-        profile.canadianExpYears ?? 0
-      } yrs in Canada (Fields: ${profile.occupationFields?.join(', ') || 'None'})`,
-      `• Job Offer: ${profile.jobOffer === 'yes' ? 'Yes' : 'No'} | Family Abroad: ${
-        profile.relativesCitizenPR && profile.relativesCitizenPR.length > 0
-          ? profile.relativesCitizenPR.join(', ')
-          : 'None'
-      }`,
-      `• Refugee / Fear of Return: ${
-        profile.fearOfReturn === 'yes'
-          ? `Yes (Doc: ${profile.refugeeDocument || 'none'}, UNHCR: ${
-              profile.unhcrRegistered || 'no'
-            }, SAH sponsor: ${profile.sponsorAvailable?.includes('sah') ? 'Yes' : 'No'})`
-          : 'No'
-      }`,
-      `• Settlement Funds: $${(profile.fundsCAD ?? 0).toLocaleString()} CAD`,
-      `• Scores: Canada CRS ${crs.total}/1200 & FSW ${fsw.total}/100 | Germany Chancenkarte ${chancen.total} pts (min 6 required, ${
-        chancen.passed ? 'Eligible' : 'Needs points/language'
-      })`,
+      `• Residence: ${resCountryEn} | Citizenship: ${citizenshipsEn} | Age: ${profile.age ?? 'N/A'}`,
+      ...countrySpecificLinesEn,
+      `• Refugee / Fear of Return: ${profile.fearOfReturn === 'yes' ? 'Yes' : 'No'}`,
       `• #1 Best Option: ${topOutcome ? `${getProgName(topOutcome)} [${topOutcome.status}]` : 'None'}${
         topMissingChecks ? ` — Key conditions/gaps: ${topMissingChecks}` : ''
       }`,
@@ -1029,28 +1064,6 @@ export function buildCaseSummaryForAI(
       ? profile.citizenships.map((c) => getCountryDisplayName(c, 'ar')).join('، ')
       : 'غير محدد';
 
-  const resStatusMap: Record<string, string> = {
-    citizen: 'مواطن في بلد الإقامة',
-    permanent_resident: 'مقيم دائم',
-    temporary_protection: 'حماية مؤقتة (كملك)',
-    refugee_recognized: 'لاجئ معترف به رسمياً',
-    asylum_pending: 'طالب لجوء',
-    temp_work: 'إقامة عمل مؤقتة',
-    temp_study: 'إقامة دراسة',
-    temp_visitor: 'زائر',
-    no_status: 'بلا إقامة قانونية',
-  };
-
-  const caStatusMap: Record<string, string> = {
-    pgwp: 'تصريح عمل بعد التخرج (PGWP)',
-    worker: 'تصريح عمل داخل كندا',
-    student: 'طالب دولي داخل كندا',
-    visitor: 'زائر داخل كندا',
-    asylum_claimant: 'طالب لجوء داخل كندا',
-    protected_person: 'شخص محمي داخل كندا',
-    out_of_status: 'منتهي الإقامة داخل كندا',
-  };
-
   const eduMap: Record<string, string> = {
     phd: 'دكتوراه',
     masters: 'ماجستير',
@@ -1062,35 +1075,65 @@ export function buildCaseSummaryForAI(
     none: 'أقل من ثانوية',
   };
 
+  const countrySpecificLinesAr: string[] = [];
+  if (activeCountry === 'CA') {
+    countrySpecificLinesAr.push(
+      `• الدولة قيد الفحص: كندا فقط (IRCC — canada.ca)`,
+      `• التعليم: ${eduMap[profile.education || ''] || 'غير محدد'} (دراسة بكندا: ${
+        profile.canadianEducation && profile.canadianEducation !== 'none' ? 'نعم' : 'لا'
+      })`,
+      `• اللغات: الإنجليزية CLB ${profile.englishCLB ?? 0} | الفرنسية NCLC ${profile.frenchCLB ?? 0}`,
+      `• الخبرة: ${profile.foreignExpYears ?? 0} سنوات بالخارج | ${
+        profile.canadianExpYears ?? 0
+      } سنوات بكندا (المجال: ${profile.occupationFields?.join(', ') || 'غير محدد'})`,
+      `• عرض عمل كندي: ${profile.jobOffer === 'yes' ? 'نعم' : 'لا'} | أقارب في كندا: ${
+        profile.relativesCitizenPR && profile.relativesCitizenPR.length > 0
+          ? profile.relativesCitizenPR.join(', ')
+          : 'لا يوجد'
+      }`,
+      `• المدخرات بالدولار الكندي: $${(profile.fundsCAD ?? 0).toLocaleString()} CAD | النقاط: CRS ${crs.total}/1200 و FSW ${fsw.total}/100`,
+    );
+  } else if (activeCountry === 'DE') {
+    countrySpecificLinesAr.push(
+      `• الدولة قيد الفحص: ألمانيا فقط (Make it in Germany / BAMF)`,
+      `• التعليم ومعادلة الشهادة ANABIN/ZAB: ${eduMap[profile.education || ''] || 'غير محدد'} | حالة المعادلة: ${
+        profile.deDegreeRecognition || 'غير محدد'
+      }`,
+      `• اللغات: الألمانية ${GERMAN_LEVEL_LABEL_AR[profile.germanLevel ?? 0]} | الإنجليزية CLB ${
+        profile.englishCLB ?? 0
+      }`,
+      `• الخبرة المهنية: ${profile.foreignExpYears ?? 0} سنوات (المجال: ${
+        profile.occupationFields?.join(', ') || 'غير محدد'
+      })`,
+      `• عقد العمل / القبول في ألمانيا: ${profile.deJobOfferType || 'لا يوجد'} | أقارب في ألمانيا (§ 36 AufenthG): ${
+        profile.deRelatives?.join(', ') || 'لا يوجد'
+      }`,
+      `• الحساب المغلق / المدخرات باليورو: €${(
+        profile.deFundsEUR ?? Math.round((profile.fundsCAD ?? 0) * 0.68)
+      ).toLocaleString()} EUR | نقاط بطاقة الفرص Chancenkarte: ${chancen.total} نقاط (الحد الأدنى 6)`,
+    );
+  } else {
+    countrySpecificLinesAr.push(
+      `• الدولة قيد الفحص: الولايات المتحدة فقط (USCIS — uscis.gov)`,
+      `• التعليم: ${eduMap[profile.education || ''] || 'غير محدد'} | بلد الميلاد مؤهل للوتري DV: ${
+        profile.usDvEligibleBirth || 'غير محدد'
+      }`,
+      `• مؤشرات الإعفاء الوطني EB-2 NIW والقدرات الفائقة: ${
+        profile.usExtraordinaryProfile?.join(', ') || 'لا يوجد'
+      }`,
+      `• الكفالة الوظيفية / القبول الدراسي في أمريكا: ${
+        profile.usJobOfferType || 'لا يوجد'
+      } | أقارب في أمريكا (Form I-130): ${profile.usRelatives?.join(', ') || 'لا يوجد'}`,
+      `• المدخرات / رأس المال بالدولار الأمريكي: $${(
+        profile.usFundsUSD ?? Math.round((profile.fundsCAD ?? 0) * 0.73)
+      ).toLocaleString()} USD`,
+    );
+  }
+
   const lines = [
-    `• الدول المستهدفة: ${targets.join('، ')}`,
-    `• الإقامة: ${resCountry} (${
-      profile.residenceCountry === 'CA'
-        ? caStatusMap[profile.canadaStatus || ''] || 'داخل كندا'
-        : resStatusMap[profile.residenceStatus || ''] || 'غير محدد'
-    }) | الجنسية: ${citizenships} | العمر: ${profile.age ?? 'غير محدد'}`,
-    `• التعليم: ${eduMap[profile.education || ''] || 'غير محدد'} (دراسة بكندا: ${
-      profile.canadianEducation && profile.canadianEducation !== 'none' ? 'نعم' : 'لا'
-    })`,
-    `• اللغات: الإنجليزية CLB ${profile.englishCLB ?? 0} | الفرنسية NCLC ${profile.frenchCLB ?? 0} | الألمانية: ${
-      GERMAN_LEVEL_LABEL_AR[profile.germanLevel ?? 0]
-    }`,
-    `• الخبرة: ${profile.foreignExpYears ?? 0} سنوات بالخارج | ${
-      profile.canadianExpYears ?? 0
-    } سنوات بكندا (المجال: ${profile.occupationFields?.join(', ') || 'غير محدد'})`,
-    `• عرض عمل: ${profile.jobOffer === 'yes' ? 'نعم' : 'لا'} | أقارب بالخارج: ${
-      profile.relativesCitizenPR && profile.relativesCitizenPR.length > 0
-        ? profile.relativesCitizenPR.join(', ')
-        : 'لا يوجد'
-    }`,
-    `• اللجوء: ${
-      profile.fearOfReturn === 'yes'
-        ? `نعم (وثيقة: ${profile.refugeeDocument || 'لا'}، كفيل SAH: ${
-            profile.sponsorAvailable?.includes('sah') ? 'متوفر' : 'غير متوفر'
-          })`
-        : 'لا'
-    } | المدخرات: $${(profile.fundsCAD ?? 0).toLocaleString()} CAD`,
-    `• النقاط: كندا CRS ${crs.total}/1200 و FSW ${fsw.total}/100 | ألمانيا Chancenkarte ${chancen.total} نقاط (الحد الأدنى 6)`,
+    `• الإقامة: ${resCountry} | الجنسية: ${citizenships} | العمر: ${profile.age ?? 'غير محدد'}`,
+    ...countrySpecificLinesAr,
+    `• اللجوء / الخوف من العودة: ${profile.fearOfReturn === 'yes' ? 'نعم' : 'لا'}`,
     `• أفضل خيار رقم 1: ${topOutcome ? getProgName(topOutcome) : 'لا يوجد'}${
       topMissingChecks ? ` — الملاحظات/النواقص: ${topMissingChecks}` : ''
     }`,

@@ -157,19 +157,78 @@ export type Medical = 'none' | 'condition' | 'unsure';
 export type PassportState = 'valid' | 'expired' | 'none';
 export type TargetCountry = 'CA' | 'DE' | 'US';
 
+export type DeResidenceStatus =
+  | 'outside_de'
+  | 'student'
+  | 'worker_blue_card'
+  | 'chancenkarte'
+  | 'asylum_duldung'
+  | 'pr_citizen';
+
+export type DeDegreeRecognition =
+  | 'full_anabin' // Fully equivalent / ANABIN H+ & equivalent degree
+  | 'partial_adaptation' // Partially recognized (Bescheid) — awards +4 Chancenkarte points
+  | 'home_recognized' // Recognized in country of origin (2+ yr vocational or university degree)
+  | 'none';
+
+export type DeJobOfferType =
+  | 'none'
+  | 'blue_card_50700' // Job offer >= €50,700/yr
+  | 'shortage_it_45934' // Job offer >= €45,934.20/yr in shortage/IT/new grad
+  | 'skilled_other' // Skilled job offer below Blue Card threshold
+  | 'ausbildung_contract' // Vocational training contract (Ausbildungsvertrag)
+  | 'uni_admission'; // German university admission (Zulassungsbescheid)
+
+export type DeRelative =
+  | 'spouse_partner' // Spouse or registered partner in Germany
+  | 'minor_child_or_parent_of_minor' // Minor child in Germany or parent of minor in Germany
+  | 'parent_of_skilled_worker' // Parent / in-law of a post-March-2024 EU Blue Card / Skilled Worker holder
+  | 'other_relative'; // Sibling / uncle / cousin (not eligible for direct family visa, can sign Verpflichtungserklärung)
+
+export type UsResidenceStatus =
+  | 'outside_us'
+  | 'f1_j1_student'
+  | 'h1b_l1_o1_worker'
+  | 'b1_b2_visitor'
+  | 'asylum_tps_pending'
+  | 'lpr_green_card'
+  | 'us_citizen';
+
+export type UsJobOfferType =
+  | 'none'
+  | 'h1b_cap' // Private US employer willing to sponsor H-1B lottery
+  | 'cap_exempt_uni_nonprofit' // US university, teaching hospital, or nonprofit research institute (year-round H-1B / EB-1B)
+  | 'l1_multinational' // Foreign company with US branch/subsidiary/parent or New US Office expansion (L-1A/L-1B/EB-1C)
+  | 'perm_eb2_eb3' // US employer willing to sponsor permanent PERM Green Card (EB-2 / EB-3 / Schedule A Nurse)
+  | 'i20_ds2019_admission'; // SEVP Form I-20 (F-1 Student) or Form DS-2019 (J-1 Exchange Visitor)
+
+export type UsExtraordinaryItem =
+  | 'niw_endeavor' // Proposed project/work of national importance to the US (STEM, Healthcare, AI, Business, Research)
+  | 'publications_citations' // Published scholarly articles, citations, or peer-review/judging work
+  | 'critical_role_high_salary' // Critical/leading role at a distinguished company/startup or high salary
+  | 'awards_media_judging'; // Nationally/internationally recognized awards, VC funding, or major press coverage
+
+export type UsRelative =
+  | 'usc_spouse_fiance' // Spouse or Fiancé(e) is a US Citizen (Immediate Relative / K-1 — no backlog)
+  | 'usc_parent_under21' // Parent is a US Citizen AND applicant is unmarried under 21 (Immediate Relative)
+  | 'usc_child_21plus' // Child is a US Citizen age 21+ (Immediate Relative for Parents — no backlog)
+  | 'lpr_spouse_or_unmarried_child' // Spouse or Parent is a US Green Card Holder (F2A / F2B Preference)
+  | 'usc_sibling_or_adult_child'; // Sibling or Parent is a US Citizen (for adult 21+ or married children — F1/F3/F4 Preference)
+
 // ───────────────────────────── The Profile ─────────────────────────────
 
 export interface Profile {
-  // ── Target destination countries selected by the user
+  // ── Active single country selected by the user ('CA' | 'DE' | 'US')
+  activeCountry?: TargetCountry;
   targetCountries?: TargetCountry[];
 
-  // ── About you
+  // ── Shared / Core About You
   age?: number;
   /** ISO 3166-1 alpha-2 codes, e.g. ['SY'] or ['IN','GB']. 'XX' = stateless. */
   citizenships?: string[];
   /** Country where the person lives now (ISO2). 'CA' if inside Canada. */
   residenceCountry?: string;
-  /** Status in residence country (only asked when residenceCountry is not CA). */
+  /** Status in residence country (only asked when residenceCountry is not CA/DE/US). */
   residenceStatus?: ResidenceStatus;
   passport?: PassportState;
   /** Status in Canada (asked if residenceCountry === 'CA'; otherwise treated as 'not_in_canada'). */
@@ -182,7 +241,7 @@ export interface Profile {
   goals?: Goal[];
   preferredProvinces?: (Province | 'any')[];
 
-  // ── Family
+  // ── Family (Canada)
   maritalStatus?: MaritalStatus;
   spouseStatus?: SpouseStatus;
   /** Would spouse/partner come to Canada with you? */
@@ -237,7 +296,7 @@ export interface Profile {
   /** Works for a company that has a branch/parent/affiliate in Canada (intra-company transfer). */
   intraCompany?: Tri;
 
-  // ── Job offer
+  // ── Job offer (Canada)
   jobOffer?: Tri;
   jobOfferType?: 'lmia' | 'lmia_exempt' | 'unsure';
   jobOfferProvince?: Province;
@@ -255,7 +314,7 @@ export interface Profile {
   /** Has a valid approved language test result (IELTS General, CELPIP, PTE Core, TEF, TCF). */
   languageTest?: 'valid' | 'none' | 'expired';
 
-  // ── Money
+  // ── Money (Canada)
   /** Available settlement funds in CAD (lower bound of chosen range). */
   fundsCAD?: number;
   /** Personal net worth in CAD (lower bound of chosen range). */
@@ -263,6 +322,21 @@ export interface Profile {
   businessPlan?: BusinessPlan;
   /** Years of business ownership/management experience. */
   businessExpYears?: number;
+
+  // ── Germany-Specific Variables (DE)
+  deResidenceStatus?: DeResidenceStatus;
+  deDegreeRecognition?: DeDegreeRecognition;
+  deJobOfferType?: DeJobOfferType;
+  deRelatives?: DeRelative[];
+  deFundsEUR?: number;
+
+  // ── USA-Specific Variables (US)
+  usResidenceStatus?: UsResidenceStatus;
+  usDvEligibleBirth?: Tri;
+  usJobOfferType?: UsJobOfferType;
+  usExtraordinaryProfile?: UsExtraordinaryItem[];
+  usRelatives?: UsRelative[];
+  usFundsUSD?: number;
 
   // ── Background
   history?: HistoryItem[];

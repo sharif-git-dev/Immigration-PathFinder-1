@@ -56,9 +56,14 @@ export const usaPrograms: Program[] = [
       const totalExp = (p.foreignExpYears ?? 0) + (p.canadianExpYears ?? 0);
       const hasAdvDegree = hasEduAtLeast(p.education, 'masters');
       const hasBachPlus5 = hasEduAtLeast(p.education, 'bachelors') && totalExp >= 5;
+      const ext = p.usExtraordinaryProfile ?? [];
+      const hasNiwEndeavor =
+        ext.includes('niw_endeavor') ||
+        ext.includes('publications_citations') ||
+        ext.includes('critical_role_high_salary');
 
       checks.push({
-        label: 'Advanced Degree (Master’s / PhD) or Bachelor’s + 5 years experience',
+        label: 'Advanced Degree (Master’s / PhD) or Bachelor’s + 5 years progressive experience',
         result:
           hasAdvDegree || hasBachPlus5
             ? 'pass'
@@ -74,10 +79,15 @@ export const usaPrograms: Program[] = [
       });
 
       checks.push({
-        label: 'Matter of Dhanasar 3-Prong National Interest Test',
-        result: totalExp >= 2 || hasAdvDegree ? 'pass' : 'unknown',
-        detail:
-          'Your proposed US endeavor must have (1) substantial merit and national importance, (2) you must be well-positioned to advance it, and (3) on balance, waiving the job offer/PERM requirement benefits the United States.',
+        label: 'Matter of Dhanasar 3-Prong National Interest Endeavor',
+        result: hasNiwEndeavor
+          ? 'pass'
+          : p.usExtraordinaryProfile === undefined && (totalExp >= 2 || hasAdvDegree)
+            ? 'unknown'
+            : 'fail',
+        detail: hasNiwEndeavor
+          ? 'You indicated having a proposed endeavor or track record of national importance (STEM, Healthcare, AI, Research, or Business).'
+          : 'Your proposed US endeavor must have (1) substantial merit and national importance, (2) you must be well-positioned to advance it, and (3) on balance, waiving the job offer/PERM requirement benefits the United States.',
         fixable: true,
       });
 
@@ -122,16 +132,27 @@ export const usaPrograms: Program[] = [
     lastVerified: '2026-04-17',
     evaluate: (p: Profile) => {
       const checks: Check[] = [];
-      const totalExp = (p.foreignExpYears ?? 0) + (p.canadianExpYears ?? 0);
-      const strongProfile =
-        (hasEduAtLeast(p.education, 'masters') && totalExp >= 3) ||
-        p.culturalAthleticExp === 'yes';
+      const ext = p.usExtraordinaryProfile ?? [];
+      const criteriaCount = [
+        ext.includes('publications_citations'),
+        ext.includes('critical_role_high_salary'),
+        ext.includes('awards_media_judging'),
+      ].filter(Boolean).length;
 
       checks.push({
         label: 'Meet at least 3 of 10 USCIS Extraordinary Ability criteria (or a major international award)',
-        result: strongProfile || totalExp >= 3 ? 'unknown' : 'fail',
+        result:
+          criteriaCount >= 2
+            ? 'pass'
+            : criteriaCount === 1
+              ? 'unknown'
+              : p.usExtraordinaryProfile === undefined
+                ? 'unknown'
+                : 'fail',
         detail:
-          'Criteria include: nationally/internationally recognized awards, judging others’ work, original contributions of major significance, scholarly articles, high salary compared to peers, leading/critical role in distinguished organizations, or press coverage.',
+          criteriaCount >= 2
+            ? 'You selected multiple extraordinary ability indicators (publications/citations, critical role/high salary, or awards/media/judging).'
+            : 'Criteria include: nationally/internationally recognized awards, judging others’ work, original contributions of major significance, scholarly articles, high salary compared to peers, leading/critical role in distinguished organizations, or press coverage.',
         fixable: true,
       });
 
@@ -175,11 +196,15 @@ export const usaPrograms: Program[] = [
     evaluate: (p: Profile) => {
       const checks: Check[] = [];
       const totalExp = (p.foreignExpYears ?? 0) + (p.canadianExpYears ?? 0);
+      const hasQualifyingSponsor =
+        p.usJobOfferType === 'l1_multinational' ||
+        p.usJobOfferType === 'cap_exempt_uni_nonprofit';
+
       checks.push({
         label:
           'Experience (1+ yr as multinational manager/executive in last 3 yrs for EB-1C, or 3+ yrs research/teaching for EB-1B)',
         result:
-          totalExp >= 1 || p.intraCompany === 'yes'
+          totalExp >= 1
             ? 'pass'
             : p.foreignExpYears === undefined
               ? 'unknown'
@@ -189,11 +214,10 @@ export const usaPrograms: Program[] = [
       });
       checks.push({
         label: 'Qualifying US Employer Petition (Multinational Affiliate or University/Research Institution)',
-        result: p.jobOffer === 'yes' || p.intraCompany === 'yes' ? 'pass' : 'fail',
-        detail:
-          p.jobOffer === 'yes' || p.intraCompany === 'yes'
-            ? 'You indicated having a job offer or multinational company affiliation.'
-            : 'Requires a petitioning US employer (either a related multinational entity for EB-1C or a university/research employer for EB-1B).',
+        result: hasQualifyingSponsor ? 'pass' : 'fail',
+        detail: hasQualifyingSponsor
+          ? 'You indicated having a multinational company transfer or university/research sponsor.'
+          : 'Requires a petitioning US employer (either a related multinational entity for EB-1C or a university/research employer for EB-1B).',
         fixable: true,
       });
       return { checks };
@@ -230,6 +254,10 @@ export const usaPrograms: Program[] = [
       const checks: Check[] = [];
       const totalExp = (p.foreignExpYears ?? 0) + (p.canadianExpYears ?? 0);
       const hasEduOrExp = hasEduAtLeast(p.education, 'bachelors') || totalExp >= 2;
+      const hasUsJob =
+        p.usJobOfferType === 'perm_eb2_eb3' ||
+        p.usJobOfferType === 'h1b_cap' ||
+        p.usJobOfferType === 'cap_exempt_uni_nonprofit';
 
       checks.push({
         label: 'Bachelor’s Degree (Professional) OR 2+ Years Experience/Training (Skilled Worker)',
@@ -246,11 +274,10 @@ export const usaPrograms: Program[] = [
 
       checks.push({
         label: 'Permanent Full-Time US Job Offer & Employer PERM Sponsorship',
-        result: p.jobOffer === 'yes' ? 'pass' : 'fail',
-        detail:
-          p.jobOffer === 'yes'
-            ? 'You indicated having a job offer.'
-            : 'Requires a US employer willing to complete DOL prevailing wage determination, recruitment (PERM Form ETA-9089), and Form I-140.',
+        result: hasUsJob ? 'pass' : 'fail',
+        detail: hasUsJob
+          ? 'You indicated having a US employer job offer.'
+          : 'Requires a US employer willing to complete DOL prevailing wage determination, recruitment (PERM Form ETA-9089), and Form I-140.',
         fixable: true,
       });
 
@@ -310,9 +337,12 @@ export const usaPrograms: Program[] = [
 
       checks.push({
         label: 'Born in a DV-Eligible Country (or chargeable to spouse’s eligible country of birth)',
-        result: 'pass',
+        result: p.usDvEligibleBirth === 'no' ? 'fail' : 'pass',
         detail:
-          'Most countries in the Middle East/MENA (e.g., Syria, Jordan, Egypt, Lebanon, Iraq, Saudi Arabia, UAE, Morocco, Algeria, Tunisia, Sudan, Yemen), Africa, and Europe are 100% eligible. Eligibility is based on country of birth, not citizenship.',
+          p.usDvEligibleBirth === 'no'
+            ? 'You indicated that neither you nor your spouse was born in a DV-eligible country.'
+            : 'Most countries in the Middle East/MENA (e.g., Syria, Jordan, Egypt, Lebanon, Iraq, Saudi Arabia, UAE, Morocco, Algeria, Tunisia, Sudan, Yemen), Africa, and Europe are 100% eligible. Eligibility is based on country of birth, not citizenship.',
+        fixable: false,
       });
 
       return { checks };
@@ -352,6 +382,8 @@ export const usaPrograms: Program[] = [
       const checks: Check[] = [];
       const totalExp = (p.foreignExpYears ?? 0) + (p.canadianExpYears ?? 0);
       const hasDegree = hasEduAtLeast(p.education, 'bachelors') || totalExp >= 6;
+      const hasH1bSponsor =
+        p.usJobOfferType === 'h1b_cap' || p.usJobOfferType === 'cap_exempt_uni_nonprofit';
 
       checks.push({
         label:
@@ -369,11 +401,13 @@ export const usaPrograms: Program[] = [
 
       checks.push({
         label: 'US Employer Sponsor & Certified Labor Condition Application (LCA)',
-        result: p.jobOffer === 'yes' ? 'pass' : 'fail',
+        result: hasH1bSponsor ? 'pass' : 'fail',
         detail:
-          p.jobOffer === 'yes'
-            ? 'You indicated having a job offer.'
-            : 'Requires a US employer to register you in the March H-1B lottery (or file year-round if the employer is a cap-exempt university, teaching hospital, or nonprofit research institute).',
+          p.usJobOfferType === 'cap_exempt_uni_nonprofit'
+            ? 'You hold a Cap-Exempt university/research job offer — exempt from the annual H-1B lottery cap!'
+            : hasH1bSponsor
+              ? 'You hold a US specialty occupation job offer for H-1B registration.'
+              : 'Requires a US employer to register you in the March H-1B lottery (or file year-round if the employer is a cap-exempt university, teaching hospital, or nonprofit research institute).',
         fixable: true,
       });
 
@@ -409,11 +443,19 @@ export const usaPrograms: Program[] = [
     lastVerified: '2026-04-17',
     evaluate: (p: Profile) => {
       const checks: Check[] = [];
-      const totalExp = (p.foreignExpYears ?? 0) + (p.canadianExpYears ?? 0);
+      const ext = p.usExtraordinaryProfile ?? [];
+      const hasO1Profile =
+        ext.includes('publications_citations') ||
+        ext.includes('critical_role_high_salary') ||
+        ext.includes('awards_media_judging');
+      const hasSponsor =
+        p.usJobOfferType !== undefined && p.usJobOfferType !== 'none' && p.usJobOfferType !== 'i20_ds2019_admission';
+
       checks.push({
         label: 'Meet at least 3 of 8 O-1A criteria (or 3 of 6 O-1B Arts/Media criteria)',
-        result:
-          totalExp >= 2 || hasEduAtLeast(p.education, 'masters') || p.culturalAthleticExp === 'yes'
+        result: hasO1Profile
+          ? 'pass'
+          : p.usExtraordinaryProfile === undefined
             ? 'unknown'
             : 'fail',
         detail:
@@ -422,7 +464,7 @@ export const usaPrograms: Program[] = [
       });
       checks.push({
         label: 'US Employer or US Agent Petition (can be your own US startup)',
-        result: p.jobOffer === 'yes' || (p.businessPlan && p.businessPlan !== 'none') ? 'pass' : 'fail',
+        result: hasSponsor ? 'pass' : 'fail',
         detail:
           'Requires a US employer, US agent, or your own Delaware/US startup entity to file Form I-129.',
         fixable: true,
@@ -477,7 +519,7 @@ export const usaPrograms: Program[] = [
       });
       checks.push({
         label: 'Transferring to a US parent, branch, subsidiary, or affiliate (or opening a New US Office)',
-        result: p.intraCompany === 'yes' || p.jobOffer === 'yes' ? 'pass' : 'fail',
+        result: p.usJobOfferType === 'l1_multinational' ? 'pass' : 'fail',
         detail:
           'Requires an active qualifying relationship between the foreign company and the US entity (business owners can also use L-1A "New Office" to expand their foreign company to the US).',
         fixable: true,
@@ -519,6 +561,8 @@ export const usaPrograms: Program[] = [
         p.citizenships?.includes('CA') ||
         p.citizenships?.includes('MX') ||
         p.canadaStatus === 'citizen';
+      const hasUsJob =
+        p.usJobOfferType !== undefined && p.usJobOfferType !== 'none' && p.usJobOfferType !== 'i20_ds2019_admission';
 
       checks.push({
         label: 'Canadian or Mexican Citizenship (Permanent Residents must naturalize first)',
@@ -531,8 +575,7 @@ export const usaPrograms: Program[] = [
 
       checks.push({
         label: 'Bachelor’s Degree (or applicable license) in one of ~63 USMCA professions + US Job Offer',
-        result:
-          hasEduAtLeast(p.education, 'bachelors') && p.jobOffer === 'yes' ? 'pass' : 'fail',
+        result: hasEduAtLeast(p.education, 'bachelors') && hasUsJob ? 'pass' : 'fail',
         detail:
           'Requires a US job offer letter in a listed USMCA profession and matching degree/credentials.',
         fixable: true,
@@ -575,9 +618,9 @@ export const usaPrograms: Program[] = [
     lastVerified: '2026-04-17',
     evaluate: (p: Profile) => {
       const checks: Check[] = [];
-      const wealth = Math.max(p.fundsCAD ?? 0, p.netWorthCAD ?? 0);
-      const hasEb5Funds = wealth >= 1_000_000;
-      const hasE2Funds = wealth >= 100_000;
+      const usd = p.usFundsUSD ?? (p.fundsCAD !== undefined ? Math.round(p.fundsCAD * 0.73) : undefined);
+      const hasEb5Funds = (usd ?? 0) >= 800_000;
+      const hasE2Funds = (usd ?? 0) >= 100_000;
 
       checks.push({
         label: 'Investment Capital ($800,000 USD for EB-5 Green Card OR ~$100,000+ USD for E-2 Treaty Visa)',
@@ -585,11 +628,11 @@ export const usaPrograms: Program[] = [
           ? 'pass'
           : hasE2Funds
             ? 'pass'
-            : p.fundsCAD === undefined && p.netWorthCAD === undefined
+            : usd === undefined
               ? 'unknown'
               : 'fail',
         detail: hasEb5Funds
-          ? 'Your reported capital meets the $800,000 USD (~$1.1M CAD) EB-5 Green Card threshold.'
+          ? 'Your reported capital meets the $800,000 USD EB-5 Green Card threshold.'
           : hasE2Funds
             ? 'Your reported capital meets the typical $100,000+ USD E-2 Treaty Investor threshold (requires citizenship of a US E-2 treaty country such as Jordan, Egypt, Morocco, Turkey, Canada, or EU).'
             : 'EB-5 requires $800,000 USD; E-2 requires a substantial active investment (~$100,000+ USD) and treaty nationality.',
@@ -649,25 +692,25 @@ export const usaPrograms: Program[] = [
         fixable: true,
       });
 
-      const hasAdmission =
-        p.studyPlan === 'accepted_dli' || p.studyPlan === 'accepted_with_pal';
+      const hasAdmission = p.usJobOfferType === 'i20_ds2019_admission';
       checks.push({
         label: 'SEVP-Certified US School Admission (Form I-20) OR willingness to apply',
         result: hasAdmission ? 'pass' : 'unknown',
         detail: hasAdmission
-          ? 'You indicated having an admission offer.'
+          ? 'You indicated holding a Form I-20 / DS-2019 admission.'
           : 'You must apply to a SEVP-certified US college or university to receive Form I-20.',
         fixable: true,
       });
 
-      const hasFunds = (p.fundsCAD ?? 0) >= 25_000;
+      const usd = p.usFundsUSD ?? (p.fundsCAD !== undefined ? Math.round(p.fundsCAD * 0.73) : undefined);
+      const hasFunds = (usd ?? 0) >= 25_000;
       checks.push({
         label:
-          'Proof of first-year tuition & living funds (personal/family funds, scholarship, or graduate assistantship)',
-        result: hasFunds ? 'pass' : p.fundsCAD === undefined ? 'unknown' : 'fail',
+          'Proof of first-year tuition & living funds (~$25,000+ USD, scholarship, or graduate assistantship)',
+        result: hasFunds ? 'pass' : usd === undefined ? 'unknown' : 'fail',
         detail: hasFunds
-          ? 'Your reported savings cover typical first-year I-20 financial proof.'
-          : 'Requires proof of liquid funds, family sponsor, scholarship, or fully funded PhD/Master’s Teaching/Research Assistantship covering the first-year Form I-20 estimate.',
+          ? 'Your reported savings cover typical first-year Form I-20 financial proof.'
+          : 'Requires proof of liquid funds (~$25,000+ USD), family sponsor, scholarship, or funded Graduate Assistantship covering the first-year Form I-20 estimate.',
         fixable: true,
       });
 
@@ -717,9 +760,8 @@ export const usaPrograms: Program[] = [
       checks.push({
         label: 'Form DS-2019 from a Designated US Exchange Sponsor',
         result:
-          p.jobOffer === 'yes' ||
-          p.studyPlan === 'accepted_dli' ||
-          p.studyPlan === 'accepted_with_pal'
+          p.usJobOfferType === 'i20_ds2019_admission' ||
+          p.usJobOfferType === 'cap_exempt_uni_nonprofit'
             ? 'pass'
             : 'unknown',
         detail:
@@ -766,19 +808,24 @@ export const usaPrograms: Program[] = [
     lastVerified: '2026-04-17',
     evaluate: (p: Profile) => {
       const checks: Check[] = [];
-      const rels = p.relativesCitizenPR ?? [];
-      const hasDirectFamily =
-        rels.some((r) => ['spouse', 'parent', 'child', 'sibling'].includes(r)) ||
-        p.spouseStatus === 'citizen' ||
-        p.spouseStatus === 'pr';
+      const usRels = p.usRelatives ?? [];
+      const isImmediateRelative = usRels.some((r) =>
+        ['usc_spouse_fiance', 'usc_parent_under21', 'usc_child_21plus'].includes(r),
+      );
+      const isFamilyPreference = usRels.some((r) =>
+        ['lpr_spouse_or_unmarried_child', 'usc_sibling_or_adult_child'].includes(r),
+      );
+      const hasAnyUsFamily = isImmediateRelative || isFamilyPreference;
 
       checks.push({
         label:
           'Qualifying US Citizen or Green Card Holder Relative (Spouse, Fiancé(e), Parent, Child, or Sibling)',
-        result: hasDirectFamily ? 'pass' : 'fail',
-        detail: hasDirectFamily
-          ? 'You indicated having a qualifying close relative or spouse/partner.'
-          : 'Requires a US Citizen spouse, fiancé(e), parent, adult child (21+), or sibling—or a US Green Card holder spouse or parent (for unmarried children).',
+        result: hasAnyUsFamily ? 'pass' : 'fail',
+        detail: isImmediateRelative
+          ? 'You qualify as an IMMEDIATE RELATIVE of a US Citizen — unlimited visas with NO annual quota backlog!'
+          : isFamilyPreference
+            ? 'You qualify under the US Family Preference categories (F1/F2A/F2B/F3/F4), subject to the monthly Visa Bulletin priority date.'
+            : 'Requires a US Citizen spouse, fiancé(e), parent, adult child (21+), or sibling—or a US Green Card holder spouse or parent (grandparents, uncles, and cousins cannot sponsor a US Green Card).',
         fixable: false,
       });
 
@@ -935,7 +982,10 @@ export const usaPrograms: Program[] = [
     lastVerified: '2026-04-17',
     evaluate: (p: Profile) => {
       const checks: Check[] = [];
-      const isUsPr = p.usStatus === 'us_green_card' || p.residenceCountry === 'US';
+      const isUsPr =
+        p.usResidenceStatus === 'lpr_green_card' ||
+        p.usStatus === 'us_green_card' ||
+        p.residenceCountry === 'US';
 
       checks.push({
         label:

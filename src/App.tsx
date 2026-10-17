@@ -17,6 +17,10 @@ const COUNTRY_META: {
   nameAr: string;
   subEn: string;
   subAr: string;
+  authorityEn: string;
+  authorityAr: string;
+  officialDomain: string;
+  officialUrl: string;
   accent: string;
   bgActive: string;
 }[] = [
@@ -25,8 +29,12 @@ const COUNTRY_META: {
     flag: '🍁',
     nameEn: 'Canada',
     nameAr: 'كندا',
-    subEn: 'Express Entry • PNP • Work • Study • Family • Asylum',
-    subAr: 'Express Entry • المقاطعات • عمل • دراسة • لم شمل • لجوء',
+    subEn: 'CRS Points • Express Entry • Provincial (PNP) • Super Visa • Study • Asylum',
+    subAr: 'نقاط CRS • الدخول السريع • ترشيح المقاطعات • سوبر فيزا • دراسة • لجوء',
+    authorityEn: 'IRCC — Government of Canada (canada.ca)',
+    authorityAr: 'وزارة الهجرة الكندية الرسمية IRCC (canada.ca)',
+    officialDomain: 'canada.ca',
+    officialUrl: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada.html',
     accent: '#e11d48',
     bgActive: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
   },
@@ -35,8 +43,12 @@ const COUNTRY_META: {
     flag: '🇩🇪',
     nameEn: 'Germany',
     nameAr: 'ألمانيا',
-    subEn: 'Chancenkarte • EU Blue Card • Ausbildung • Study • Asylum',
-    subAr: 'بطاقة الفرص Chancenkarte • البطاقة الزرقاء • تدريب مهني • دراسة • لجوء',
+    subEn: 'Chancenkarte (6 pts) • EU Blue Card • ANABIN/ZAB • Ausbildung • Study • BAMF',
+    subAr: 'بطاقة الفرص Chancenkarte • البطاقة الزرقاء • معادلة ANABIN • أوسبيلدونغ • BAMF',
+    authorityEn: 'Federal Gov Portal & BAMF (make-it-in-germany.com • bamf.de)',
+    authorityAr: 'البوابة الفيدرالية الرسمية والمكتب الاتحادي (make-it-in-germany.com • bamf.de)',
+    officialDomain: 'make-it-in-germany.com',
+    officialUrl: 'https://www.make-it-in-germany.com/en/',
     accent: '#d97706',
     bgActive: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
   },
@@ -45,8 +57,12 @@ const COUNTRY_META: {
     flag: '🇺🇸',
     nameEn: 'United States',
     nameAr: 'الولايات المتحدة (أمريكا)',
-    subEn: 'EB-1/EB-2 NIW • DV Lottery • H-1B • F-1 OPT • Family • Asylum',
-    subAr: 'جرين كارد EB-2 NIW • اللوتري • عمل H-1B • دراسة F-1 • لم شمل • لجوء',
+    subEn: 'EB-2 NIW / EB-1A • DV Lottery • H-1B / O-1 • Form I-130 Family • F-1 OPT • USCIS',
+    subAr: 'جرين كارد EB-2 NIW • اللوتري • فيزا H-1B / O-1 • لم شمل I-130 • دراسة F-1 • USCIS',
+    authorityEn: 'U.S. Citizenship & Immigration Services (uscis.gov • dhs.gov)',
+    authorityAr: 'دائرة الهجرة والجنسية الأمريكية الرسمية (uscis.gov • dhs.gov)',
+    officialDomain: 'uscis.gov',
+    officialUrl: 'https://www.uscis.gov',
     accent: '#2563eb',
     bgActive: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
   },
@@ -68,17 +84,23 @@ export const App: React.FC = () => {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (!parsed.targetCountries || parsed.targetCountries.length === 0) {
-          parsed.targetCountries = ['CA', 'DE', 'US'];
-        }
-        return parsed;
+        const active: TargetCountry =
+          parsed.activeCountry ??
+          (parsed.targetCountries && parsed.targetCountries[0]) ??
+          'CA';
+        return {
+          ...parsed,
+          activeCountry: active,
+          targetCountries: [active],
+        };
       }
     } catch {
       // fallback
     }
     return {
       ...PRESET_PROFILES[0].profile,
-      targetCountries: ['CA', 'DE', 'US'],
+      activeCountry: 'CA',
+      targetCountries: ['CA'],
     };
   });
 
@@ -103,23 +125,20 @@ export const App: React.FC = () => {
     }
   }, [profile]);
 
-  const selectedCountries: TargetCountry[] =
-    profile.targetCountries && profile.targetCountries.length > 0
-      ? profile.targetCountries
-      : ['CA', 'DE', 'US'];
+  const activeCountry: TargetCountry =
+    profile.activeCountry ??
+    (profile.targetCountries && profile.targetCountries[0]) ??
+    'CA';
 
-  const toggleCountry = (code: TargetCountry) => {
-    const current = selectedCountries;
-    if (current.includes(code)) {
-      if (current.length === 1) return; // Keep at least 1 selected
-      setProfile({ ...profile, targetCountries: current.filter((c) => c !== code) });
-    } else {
-      setProfile({ ...profile, targetCountries: [...current, code] });
-    }
-  };
+  const activeCountryMeta =
+    COUNTRY_META.find((c) => c.code === activeCountry) ?? COUNTRY_META[0];
 
-  const selectAllCountries = () => {
-    setProfile({ ...profile, targetCountries: ['CA', 'DE', 'US'] });
+  const selectSingleCountry = (code: TargetCountry) => {
+    setProfile({
+      ...profile,
+      activeCountry: code,
+      targetCountries: [code],
+    });
   };
 
   const outcomes = evaluateAll(profile);
@@ -133,7 +152,7 @@ export const App: React.FC = () => {
   const totalRelevant = eligibleCount + potentialCount;
 
   const handleReset = () => {
-    setProfile({ targetCountries: ['CA', 'DE', 'US'] });
+    setProfile({ activeCountry: activeCountry, targetCountries: [activeCountry] });
     setStage('lang');
   };
 
@@ -198,23 +217,27 @@ export const App: React.FC = () => {
 
           <div className="feature-pills-grid">
             <div className="feature-pill-card feature-pill-indigo" style={{ animationDelay: '0.05s' }}>
-              <span className="feature-pill-icon">🌍</span>
+              <span className="feature-pill-icon">🎯</span>
               <span className="feature-pill-title">
-                {isAr ? '75+ مسار هجرة رسمي (كندا وألمانيا وأمريكا)' : '75+ Official Pathways (CA • DE • US)'}
+                {isAr
+                  ? 'أسئلة مخصصة لكل دولة على حدة (كندا أو ألمانيا أو أمريكا)'
+                  : 'Dedicated Country-Specific Questions (CA, DE, or US)'}
               </span>
             </div>
 
             <div className="feature-pill-card feature-pill-emerald" style={{ animationDelay: '0.12s' }}>
-              <span className="feature-pill-icon">⚡</span>
+              <span className="feature-pill-icon">🏛️</span>
               <span className="feature-pill-title">
-                {isAr ? 'حساب نقاطك وأهليتك فوراً' : 'Instant Score & Eligibility Match'}
+                {isAr
+                  ? 'موثق مباشرة من المواقع الحكومية الرسمية (IRCC • BAMF • USCIS)'
+                  : 'Verified Directly Against Official Gov Portals (IRCC • BAMF • USCIS)'}
               </span>
             </div>
 
             <div className="feature-pill-card feature-pill-amber" style={{ animationDelay: '0.19s' }}>
               <span className="feature-pill-icon">🤖</span>
               <span className="feature-pill-title">
-                {isAr ? 'مستشار ذكي لحالتك' : 'AI Case Advisor'}
+                {isAr ? 'حساب نقاطك ومستشار ذكي لحالتك' : 'Exact Points & AI Case Advisor'}
               </span>
             </div>
           </div>
@@ -224,7 +247,7 @@ export const App: React.FC = () => {
             className="btn-primary-gradient"
             onClick={() => setStage('countries')}
           >
-            {isAr ? 'التالي: اختر الدول المهتم بها ←' : 'Next: Select Countries →'}
+            {isAr ? 'التالي: اختر دولة الهجرة ←' : 'Next: Choose Destination Country →'}
           </button>
 
           <div>
@@ -241,57 +264,74 @@ export const App: React.FC = () => {
     );
   }
 
-  // SLIDE 3: Select Countries of Interest Before Starting
+  // SLIDE 3: Select ONE Destination Country (each country has its own questions & variables)
   if (stage === 'countries') {
-    const allSelected = selectedCountries.length === 3;
     return (
       <div className="standalone-screen" dir={isAr ? 'rtl' : 'ltr'}>
-        <div className="launch-card" key="countries-slide" style={{ maxWidth: 660 }}>
+        <div className="launch-card" key="countries-slide" style={{ maxWidth: 680 }}>
           <div className="maple-hero-badge" style={{ fontSize: 28 }}>
             🌍
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1e1b4b', marginBottom: 6 }}>
             {isAr
-              ? 'اختر الدول التي تهتم بالهجرة إليها'
-              : 'Select Countries You Are Interested In'}
+              ? 'اختر الدولة التي تريد فحص الهجرة إليها'
+              : 'Choose a Country to Evaluate'}
           </h1>
-          <p style={{ fontSize: 14, color: '#64748b', fontWeight: 600, marginBottom: 20 }}>
+          <p style={{ fontSize: 13.5, color: '#475569', fontWeight: 600, marginBottom: 18, lineHeight: 1.5 }}>
             {isAr
-              ? 'يمكنك اختيار دولة واحدة أو أكثر لمقارنة جميع مساراتها الرسمية لعام 2026'
-              : 'Select one or more destinations to compare all official 2026 immigration pathways'}
+              ? 'تُطرح الأسئلة وتُحسب النتيجة بناءً على قوانين الدولة المختارة فقط (شروط الأقارب، اللغة، معادلة الشهادة، والعملة الرسمية). يمكنك تبديل الدولة في أي وقت.'
+              : 'Questions, variables, and eligibility results are tailored exclusively to the single country you select (relatives, language tests, degree recognition, and currency).'}
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
             {COUNTRY_META.map((c) => {
-              const active = selectedCountries.includes(c.code);
+              const active = activeCountry === c.code;
               return (
                 <button
                   key={c.code}
                   type="button"
-                  onClick={() => toggleCountry(c.code)}
+                  onClick={() => selectSingleCountry(c.code)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     gap: 14,
-                    padding: '18px 20px',
+                    padding: '16px 20px',
                     borderRadius: 20,
                     border: active ? `2.5px solid ${c.accent}` : '2px solid #e2e8f0',
                     background: active ? c.bgActive : '#ffffff',
                     cursor: 'pointer',
                     textAlign: isAr ? 'right' : 'left',
                     transition: 'all 0.2s ease',
-                    boxShadow: active ? '0 10px 24px -8px rgba(15, 23, 42, 0.12)' : 'none',
+                    boxShadow: active ? '0 10px 24px -8px rgba(15, 23, 42, 0.14)' : 'none',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <span style={{ fontSize: 34, lineHeight: 1 }}>{c.flag}</span>
+                    <span style={{ fontSize: 36, lineHeight: 1 }}>{c.flag}</span>
                     <div>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
-                        {isAr ? c.nameAr : c.nameEn}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
+                          {isAr ? c.nameAr : c.nameEn}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: 999,
+                            background: '#f1f5f9',
+                            color: '#334155',
+                            border: '1px solid #cbd5e1',
+                          }}
+                        >
+                          🏛️ {c.officialDomain}
+                        </span>
                       </div>
-                      <div style={{ fontSize: 12.5, fontWeight: 600, color: '#475569', marginTop: 3 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: '#475569', marginTop: 4 }}>
                         {isAr ? c.subAr : c.subEn}
+                      </div>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, color: '#0f766e', marginTop: 4 }}>
+                        ✓ {isAr ? `المصدر الحكومي: ${c.authorityAr}` : `Verified Source: ${c.authorityEn}`}
                       </div>
                     </div>
                   </div>
@@ -311,40 +351,21 @@ export const App: React.FC = () => {
                       flexShrink: 0,
                     }}
                   >
-                    {active ? '✓' : '+'}
+                    {active ? '●' : '○'}
                   </span>
                 </button>
               );
             })}
           </div>
 
-          {!allSelected && (
-            <div style={{ marginBottom: 16 }}>
-              <button
-                type="button"
-                onClick={selectAllCountries}
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: '#4f46e5',
-                  background: '#eef2ff',
-                  border: '1px solid #c7d2fe',
-                  padding: '6px 14px',
-                  borderRadius: 999,
-                  cursor: 'pointer',
-                }}
-              >
-                {isAr ? '✓ اختيار الدول الثلاث معاً (كندا + ألمانيا + أمريكا)' : '✓ Select All 3 Countries (CA + DE + US)'}
-              </button>
-            </div>
-          )}
-
           <button
             type="button"
             className="btn-primary-gradient"
             onClick={() => setStage('survey')}
           >
-            {isAr ? 'ابدأ الأسئلة الآن' : 'Start Questions Now'}
+            {isAr
+              ? `ابدأ أسئلة ${activeCountryMeta.nameAr} المخصصة (${activeCountryMeta.flag})`
+              : `Start ${activeCountryMeta.nameEn} Questions (${activeCountryMeta.flag})`}
           </button>
 
           <div>
@@ -353,7 +374,9 @@ export const App: React.FC = () => {
               className="btn-skip-colorful"
               onClick={() => setStage('results')}
             >
-              {isAr ? 'تخطي كل الأسئلة للنتائج ⏭' : 'Skip all questions to results ⏭'}
+              {isAr
+                ? `تخطي كل الأسئلة إلى نتائج ${activeCountryMeta.nameAr} ⏭`
+                : `Skip all questions to ${activeCountryMeta.nameEn} results ⏭`}
             </button>
           </div>
         </div>
@@ -377,15 +400,18 @@ export const App: React.FC = () => {
               className="brand-logo"
               style={{ cursor: 'pointer' }}
               onClick={() => setStage('countries')}
+              title={isAr ? 'تغيير الدولة' : 'Change Country'}
             >
-              <span style={{ fontSize: 20 }}>🌍</span>
+              <span style={{ fontSize: 22 }}>{activeCountryMeta.flag}</span>
               <span className="brand-name">
-                {isAr ? 'مستكشف الهجرة العالمي' : 'Global PathFinder'}
+                {isAr
+                  ? `هجرة ${activeCountryMeta.nameAr}`
+                  : `${activeCountryMeta.nameEn} PathFinder`}
               </span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {/* Quick Country Filter Toggles in Header */}
+              {/* Single-Country Active Switcher in Header */}
               <div
                 style={{
                   display: 'flex',
@@ -396,31 +422,36 @@ export const App: React.FC = () => {
                   borderRadius: 999,
                   border: '1px solid #e2e8f0',
                 }}
-                title={isAr ? 'تبديل الدول المختارة' : 'Toggle selected countries'}
+                title={
+                  isAr
+                    ? 'اختر دولة واحدة لعرض أسئلتها ونتائجها الخاصة'
+                    : 'Select a single country to load its specific questions and results'
+                }
               >
                 {COUNTRY_META.map((c) => {
-                  const active = selectedCountries.includes(c.code);
+                  const active = activeCountry === c.code;
                   return (
                     <button
                       key={c.code}
                       type="button"
-                      onClick={() => toggleCountry(c.code)}
+                      onClick={() => selectSingleCountry(c.code)}
                       style={{
                         border: 'none',
-                        background: active ? '#1e1b4b' : 'transparent',
+                        background: active ? c.accent : 'transparent',
                         color: active ? '#ffffff' : '#64748b',
                         fontSize: 12,
                         fontWeight: 800,
-                        padding: '4px 9px',
+                        padding: '5px 11px',
                         borderRadius: 999,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 4,
+                        gap: 5,
+                        transition: 'all 0.15s ease',
                       }}
                     >
                       <span>{c.flag}</span>
-                      <span>{c.code}</span>
+                      <span>{isAr ? c.nameAr.split(' ')[0] : c.code}</span>
                     </button>
                   );
                 })}
@@ -432,7 +463,7 @@ export const App: React.FC = () => {
                   className={`view-switch-btn ${stage === 'survey' ? 'active' : ''}`}
                   onClick={() => setStage('survey')}
                 >
-                  {isAr ? 'الأسئلة' : 'Questions'}
+                  {isAr ? `أسئلة ${activeCountryMeta.nameAr.split(' ')[0]}` : `${activeCountryMeta.code} Questions`}
                 </button>
                 <button
                   type="button"
@@ -478,21 +509,28 @@ export const App: React.FC = () => {
             profile={profile}
             outcomes={outcomes}
             onOpenSurvey={() => setStage('survey')}
+            onSelectCountry={(code) => {
+              selectSingleCountry(code);
+              setStage('survey');
+            }}
             lang={lang}
           />
         )}
       </main>
 
       <footer className="clean-footer">
-        <div className="container" style={{ display: 'flex', gap: 18, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <a href="https://www.canada.ca" target="_blank" rel="noopener noreferrer">
-            🍁 canada.ca ↗
+        <div className="container" style={{ display: 'flex', gap: 18, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: '#64748b', fontWeight: 700 }}>
+            {isAr ? 'المصادر الحكومية الرسمية المعتمدة:' : 'Verified Official Government Sources:'}
+          </span>
+          <a href="https://www.canada.ca/en/immigration-refugees-citizenship.html" target="_blank" rel="noopener noreferrer">
+            🍁 IRCC (canada.ca) ↗
           </a>
           <a href="https://www.make-it-in-germany.com/en/" target="_blank" rel="noopener noreferrer">
-            🇩🇪 make-it-in-germany.com ↗
+            🇩🇪 Make it in Germany / BAMF ↗
           </a>
           <a href="https://www.uscis.gov" target="_blank" rel="noopener noreferrer">
-            🇺🇸 uscis.gov ↗
+            🇺🇸 USCIS (uscis.gov) ↗
           </a>
         </div>
       </footer>

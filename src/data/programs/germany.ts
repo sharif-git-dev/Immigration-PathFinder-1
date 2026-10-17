@@ -23,10 +23,12 @@ export function calculateChancenkartePoints(p: Profile): ChancenkartePoints {
     p.education === 'professional' ||
     p.education === 'phd';
 
-  // Direct route if ECA/recognition is already completed
-  const directEligible = Boolean(hasDegreeOr2YrDiploma && p.ecaDone === 'yes');
+  // Direct route if qualification is fully recognized in Germany (ANABIN H+ / ZAB)
+  const directEligible = Boolean(
+    hasDegreeOr2YrDiploma && (p.deDegreeRecognition === 'full_anabin' || p.ecaDone === 'yes'),
+  );
 
-  // 1. Age (< 35 = 2 pts, 35–39 = 1 pt)
+  // 1. Age (< 35 = 2 pts, 35–40 = 1 pt)
   if (p.age !== undefined) {
     if (p.age >= 18 && p.age < 35) {
       factors.push({ label: 'Age under 35 (+2 pts)', points: 2 });
@@ -76,9 +78,17 @@ export function calculateChancenkartePoints(p: Profile): ChancenkartePoints {
     total += 1;
   }
 
-  // 6. Qualification equivalence / Regulated profession partial recognition (+4 pts potential)
-  if (hasDegreeOr2YrDiploma && (fields.includes('healthcare') || fields.includes('education') || fields.includes('trades'))) {
-    factors.push({ label: 'Qualification in regulated/shortage field eligible for partial recognition (+4 pts)', points: 4 });
+  // 6. Qualification equivalence / Regulated profession partial recognition (+4 pts)
+  if (
+    p.deDegreeRecognition === 'partial_adaptation' ||
+    (p.deDegreeRecognition === undefined &&
+      hasDegreeOr2YrDiploma &&
+      (fields.includes('healthcare') || fields.includes('education') || fields.includes('trades')))
+  ) {
+    factors.push({
+      label: 'Partial German credential recognition / Defizitbescheid (+4 pts)',
+      points: 4,
+    });
     total += 4;
   }
 
@@ -125,6 +135,9 @@ export const germanyPrograms: Program[] = [
     evaluate: (p: Profile): EvalResult => {
       const ck = calculateChancenkartePoints(p);
       const hasQualification =
+        p.deDegreeRecognition === 'full_anabin' ||
+        p.deDegreeRecognition === 'partial_adaptation' ||
+        p.deDegreeRecognition === 'home_recognized' ||
         p.education === 'two_year' ||
         p.education === 'bachelors' ||
         p.education === 'two_or_more' ||
@@ -134,16 +147,26 @@ export const germanyPrograms: Program[] = [
       const de = p.germanLevel ?? 0;
       const en = p.englishCLB ?? 0;
       const meetsLang = de >= 1 || en >= 7;
-      // €13,092 EUR is approx $19,500 CAD
-      const fundsOk = p.fundsCAD === undefined ? 'unknown' : p.fundsCAD >= 18000 ? 'pass' : 'warn';
+      const fundsEUR = p.deFundsEUR ?? (p.fundsCAD !== undefined ? Math.round(p.fundsCAD * 0.68) : undefined);
+      const fundsOk = fundsEUR === undefined ? 'unknown' : fundsEUR >= 13092 ? 'pass' : 'fail';
 
       const checks: Check[] = [
         {
-          label: 'University degree or 2+ year state-recognized vocational diploma',
-          result: p.education === undefined ? 'unknown' : hasQualification ? 'pass' : 'fail',
-          detail: hasQualification
-            ? 'Your post-secondary qualification meets the baseline requirement.'
-            : 'Requires at least a 2-year vocational diploma or university degree.',
+          label: 'University degree or 2+ year state-recognized vocational diploma (ANABIN / ZAB)',
+          result:
+            p.deDegreeRecognition === 'none'
+              ? 'fail'
+              : p.education === undefined && p.deDegreeRecognition === undefined
+                ? 'unknown'
+                : hasQualification
+                  ? 'pass'
+                  : 'fail',
+          detail:
+            p.deDegreeRecognition === 'full_anabin'
+              ? 'Your degree is fully recognized in Germany (ANABIN H+) — qualifies directly without needing 6 points!'
+              : hasQualification
+                ? 'Your post-secondary qualification meets the baseline requirement.'
+                : 'Requires at least a 2-year state-recognized vocational diploma or university degree.',
           fixable: false,
         },
         {
@@ -155,18 +178,22 @@ export const germanyPrograms: Program[] = [
           fixable: true,
         },
         {
-          label: 'Minimum 6 Points on the Chancenkarte Grid (or direct recognition)',
+          label: 'Minimum 6 Points on the Chancenkarte Grid (or direct ANABIN H+ equivalence)',
           result: ck.total >= 6 || ck.directEligible ? 'pass' : 'fail',
-          detail: `Your estimated Chancenkarte score is ${ck.total} points (6 required). ${
-            ck.factors.map((f) => f.label).join(' · ') || 'Add experience, language, or age details.'
-          }`,
+          detail: ck.directEligible
+            ? `Direct eligibility via full German credential recognition (plus ${ck.total} points on grid).`
+            : `Your estimated Chancenkarte score is ${ck.total} points (6 required). ${
+                ck.factors.map((f) => f.label).join(' · ') || 'Add experience, language, or age details.'
+              }`,
           fixable: true,
         },
         {
-          label: 'Blocked Account (Sperrkonto) of €13,092/yr (€1,091/mo) or part-time job contract',
+          label: 'Blocked Account (Sperrkonto) of €13,092/yr (€1,091/mo) or 20 hr/wk job contract',
           result: fundsOk,
           detail:
-            '2026 requirement: €1,091/month (€13,092/year) in a blocked account, OR a 20 hr/week job contract in Germany.',
+            fundsEUR !== undefined
+              ? `You reported ~€${fundsEUR.toLocaleString()} EUR (2026 Chancenkarte requirement: €13,092/year or part-time contract).`
+              : '2026 requirement: €1,091/month (€13,092/year) in a blocked account, OR a 20 hr/week job contract in Germany.',
           fixable: true,
         },
       ];
@@ -223,9 +250,14 @@ export const germanyPrograms: Program[] = [
         (p.occupationFields ?? []).includes('stem') &&
         (p.foreignExpYears ?? 0) + (p.canadianExpYears ?? 0) >= 3;
 
+      const hasBlueCardOffer =
+        p.deJobOfferType === 'blue_card_50700' ||
+        p.deJobOfferType === 'shortage_it_45934' ||
+        (p.deJobOfferType === undefined && p.jobOffer === 'yes');
+
       const checks: Check[] = [
         {
-          label: 'University degree OR 3+ years of professional IT experience',
+          label: 'University degree (ANABIN H+) OR 3+ years of professional IT experience',
           result: p.education === undefined ? 'unknown' : hasUniDegree || isITWith3Yrs ? 'pass' : 'fail',
           detail:
             hasUniDegree || isITWith3Yrs
@@ -234,10 +266,11 @@ export const germanyPrograms: Program[] = [
           fixable: false,
         },
         {
-          label: 'Job offer in Germany meeting 2026 salary threshold (€45,934–€50,700/yr)',
-          result: p.jobOffer === 'yes' ? 'pass' : 'warn',
-          detail:
-            '2026 minimum gross salary: €45,934.20/yr for shortage fields (STEM, doctors, teachers) & recent graduates, or €50,700/yr for other fields.',
+          label: 'German job offer meeting 2026 salary threshold (€45,934.20 or €50,700/yr)',
+          result: hasBlueCardOffer ? 'pass' : 'fail',
+          detail: hasBlueCardOffer
+            ? 'Your German job offer meets the 2026 EU Blue Card salary threshold.'
+            : '2026 minimum gross salary: €45,934.20/yr for shortage fields (STEM, doctors, teachers, IT) & recent graduates, or €50,700/yr for other fields.',
           fixable: true,
         },
         {
@@ -247,10 +280,7 @@ export const germanyPrograms: Program[] = [
         },
       ];
 
-      return {
-        checks,
-        status: !(hasUniDegree || isITWith3Yrs) ? 'not_eligible' : p.jobOffer === 'yes' ? 'eligible' : 'possible',
-      };
+      return { checks };
     },
   },
 
@@ -285,26 +315,34 @@ export const germanyPrograms: Program[] = [
     evaluate: (p: Profile): EvalResult => {
       const hasQual =
         p.education !== undefined && p.education !== 'none' && p.education !== 'secondary';
+      const hasDeJob =
+        p.deJobOfferType === 'blue_card_50700' ||
+        p.deJobOfferType === 'shortage_it_45934' ||
+        p.deJobOfferType === 'skilled_other' ||
+        (p.deJobOfferType === undefined && p.jobOffer === 'yes');
+
       const checks: Check[] = [
         {
-          label: 'University degree or vocational diploma (2+ years)',
+          label: 'Recognized university degree or vocational diploma (2+ years)',
           result: p.education === undefined ? 'unknown' : hasQual ? 'pass' : 'fail',
-          detail: hasQual
-            ? 'Eligible once recognized as equivalent in Germany.'
-            : 'Requires post-secondary vocational training or a university degree.',
+          detail:
+            p.deDegreeRecognition === 'full_anabin'
+              ? 'Your qualification is already recognized in Germany.'
+              : hasQual
+                ? 'Eligible once recognized as equivalent in Germany.'
+                : 'Requires post-secondary vocational training or a university degree.',
           fixable: false,
         },
         {
           label: 'Qualified job offer in Germany',
-          result: p.jobOffer === 'yes' ? 'pass' : 'warn',
-          detail: 'Requires a concrete job offer from a German employer.',
+          result: hasDeJob ? 'pass' : 'fail',
+          detail: hasDeJob
+            ? 'You hold a qualifying German job offer.'
+            : 'Requires a concrete job offer from a German employer.',
           fixable: true,
         },
       ];
-      return {
-        checks,
-        status: !hasQual ? 'not_eligible' : p.jobOffer === 'yes' ? 'eligible' : 'possible',
-      };
+      return { checks };
     },
   },
 
@@ -339,9 +377,15 @@ export const germanyPrograms: Program[] = [
       const hasQual =
         p.education !== undefined && p.education !== 'none' && p.education !== 'secondary';
       const exp = (p.foreignExpYears ?? 0) + (p.canadianExpYears ?? 0);
+      const hasDeJob =
+        p.deJobOfferType === 'blue_card_50700' ||
+        p.deJobOfferType === 'shortage_it_45934' ||
+        p.deJobOfferType === 'skilled_other' ||
+        (p.deJobOfferType === undefined && p.jobOffer === 'yes');
+
       const checks: Check[] = [
         {
-          label: 'Foreign degree or 2-year vocational diploma',
+          label: 'Foreign degree or 2-year vocational diploma (recognized in country of origin)',
           result: p.education === undefined ? 'unknown' : hasQual ? 'pass' : 'fail',
           fixable: false,
         },
@@ -352,15 +396,12 @@ export const germanyPrograms: Program[] = [
           fixable: true,
         },
         {
-          label: 'German job offer paying ≥ €45,630/yr (or union wage)',
-          result: p.jobOffer === 'yes' ? 'pass' : 'warn',
+          label: 'German job offer paying ≥ €45,630/yr (or union collective wage)',
+          result: hasDeJob ? 'pass' : 'fail',
           fixable: true,
         },
       ];
-      return {
-        checks,
-        status: !hasQual ? 'not_eligible' : exp < 2 ? 'close' : 'possible',
-      };
+      return { checks };
     },
   },
 
@@ -394,6 +435,12 @@ export const germanyPrograms: Program[] = [
       const hasQual =
         p.education !== undefined && p.education !== 'none' && p.education !== 'secondary';
       const de = p.germanLevel ?? 0;
+      const hasDeJob =
+        p.deJobOfferType === 'blue_card_50700' ||
+        p.deJobOfferType === 'shortage_it_45934' ||
+        p.deJobOfferType === 'skilled_other' ||
+        (p.deJobOfferType === undefined && p.jobOffer === 'yes');
+
       const checks: Check[] = [
         {
           label: 'Foreign university degree or 2-year vocational qualification',
@@ -402,20 +449,17 @@ export const germanyPrograms: Program[] = [
         },
         {
           label: 'German language at A2 level or higher',
-          result: de >= 2 ? 'pass' : 'warn',
+          result: de >= 2 ? 'pass' : 'fail',
           detail: de >= 2 ? 'Meets A2 German requirement.' : 'Requires at least A2 German.',
           fixable: true,
         },
         {
           label: 'Job offer & recognition agreement with a German employer',
-          result: p.jobOffer === 'yes' ? 'pass' : 'warn',
+          result: hasDeJob ? 'pass' : 'fail',
           fixable: true,
         },
       ];
-      return {
-        checks,
-        status: !hasQual ? 'not_eligible' : de >= 2 ? 'possible' : 'close',
-      };
+      return { checks };
     },
   },
 
@@ -449,6 +493,9 @@ export const germanyPrograms: Program[] = [
     lastVerified: '2026-10-17',
     evaluate: (p: Profile): EvalResult => {
       const hasHighSchool = p.education !== undefined && p.education !== 'none';
+      const fundsEUR = p.deFundsEUR ?? (p.fundsCAD !== undefined ? Math.round(p.fundsCAD * 0.68) : undefined);
+      const hasAdmission = p.deJobOfferType === 'uni_admission';
+
       const checks: Check[] = [
         {
           label: 'High school diploma or bachelor’s degree for university admission',
@@ -456,19 +503,27 @@ export const germanyPrograms: Program[] = [
           fixable: false,
         },
         {
+          label: 'German University Admission (Zulassungsbescheid) or application',
+          result: hasAdmission ? 'pass' : 'unknown',
+          detail: hasAdmission
+            ? 'You hold a German university admission offer.'
+            : 'Apply via uni-assist.de or directly to a German public university.',
+          fixable: true,
+        },
+        {
           label: 'Blocked Account (Sperrkonto) of €11,904/year (€992/month)',
           result:
-            p.fundsCAD === undefined
+            fundsEUR === undefined
               ? 'unknown'
-              : p.fundsCAD >= 16500
+              : fundsEUR >= 11904
               ? 'pass'
-              : 'warn',
-          detail: '2026 requirement: €11,904/year (approx. $17,800 CAD) in a blocked account.',
+              : 'fail',
+          detail: '2026 requirement: €11,904/year (€992/month) in a blocked account or formal sponsor.',
           fixable: true,
         },
         {
           label: 'English (IELTS/TOEFL) or German (B2/C1) matching your degree program',
-          result: (p.englishCLB ?? 0) >= 7 || (p.germanLevel ?? 0) >= 4 ? 'pass' : 'warn',
+          result: (p.englishCLB ?? 0) >= 7 || (p.germanLevel ?? 0) >= 4 ? 'pass' : 'fail',
           fixable: true,
         },
       ];
@@ -506,6 +561,7 @@ export const germanyPrograms: Program[] = [
     evaluate: (p: Profile): EvalResult => {
       const hasSchool = p.education !== undefined && p.education !== 'none';
       const de = p.germanLevel ?? 0;
+      const hasContract = p.deJobOfferType === 'ausbildung_contract';
       const checks: Check[] = [
         {
           label: 'Secondary school completion',
@@ -513,16 +569,21 @@ export const germanyPrograms: Program[] = [
           fixable: false,
         },
         {
-          label: 'German language at B1 level',
-          result: de >= 3 ? 'pass' : 'warn',
-          detail: de >= 3 ? 'Meets B1 German requirement.' : 'Most Ausbildung employers require B1 German.',
+          label: 'German language at B1 level (or B2 for Nursing/Healthcare)',
+          result: de >= 3 ? 'pass' : 'fail',
+          detail: de >= 3 ? 'Meets B1 German requirement.' : 'Ausbildung employers and visas require B1 German.',
+          fixable: true,
+        },
+        {
+          label: 'Training contract (Ausbildungsvertrag) with a German employer',
+          result: hasContract ? 'pass' : 'unknown',
+          detail: hasContract
+            ? 'You hold an Ausbildung training contract.'
+            : 'You can apply directly to German companies via Make it in Germany / Bundesagentur für Arbeit.',
           fixable: true,
         },
       ];
-      return {
-        checks,
-        status: !hasSchool ? 'not_eligible' : de >= 3 ? 'possible' : 'close',
-      };
+      return { checks };
     },
   },
 
@@ -555,19 +616,31 @@ export const germanyPrograms: Program[] = [
     processingTime: '2 to 6 months',
     lastVerified: '2026-10-17',
     evaluate: (p: Profile): EvalResult => {
+      const deRels = p.deRelatives ?? [];
+      const hasQualifyingDeFamily = deRels.some((r) =>
+        ['spouse_partner', 'minor_child_or_parent_of_minor', 'parent_of_skilled_worker'].includes(r),
+      );
+      const onlyExtendedRel = deRels.length > 0 && !hasQualifyingDeFamily;
+
       const checks: Check[] = [
         {
-          label: 'Spouse, parent, or minor child living legally in Germany',
-          result: 'info',
-          detail: 'Requires a qualifying family member (spouse, parent, or minor child) in Germany.',
+          label:
+            'Qualifying family member in Germany (Spouse/Partner, Minor Child, or Parent of a post-March-2024 Skilled Worker)',
+          result: hasQualifyingDeFamily ? 'pass' : 'fail',
+          detail: hasQualifyingDeFamily
+            ? 'You have an eligible nuclear family member (or skilled worker child) in Germany.'
+            : onlyExtendedRel
+              ? 'Siblings, grandparents, uncles, or adult children do NOT qualify for German family reunification (unless extreme hardship under § 36(2) AufenthG).'
+              : 'Requires a spouse, minor child, or (for post-March-2024 Blue Card/Skilled Worker holders) parent in Germany.',
+          fixable: false,
         },
         {
-          label: 'Basic German A1 (waived for spouses of EU Blue Card / Skilled Workers)',
+          label: 'Basic German A1 (waived for spouses/parents of EU Blue Card & Skilled Workers)',
           result: (p.germanLevel ?? 0) >= 1 ? 'pass' : 'info',
           fixable: true,
         },
       ];
-      return { checks, status: 'possible' };
+      return { checks };
     },
   },
 
