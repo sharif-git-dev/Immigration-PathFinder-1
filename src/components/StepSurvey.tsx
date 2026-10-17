@@ -2,17 +2,22 @@ import React, { useState, useEffect } from 'react';
 import type { Profile, Province } from '../engine/types';
 import { COUNTRIES } from '../data/countries';
 import { getCountryDisplayName, PROVINCE_AR } from '../data/arabicTranslations';
+import { CountryFlag } from './CountryFlag';
 
 interface StepSurveyProps {
   profile: Profile;
   onChangeProfile: (updated: Profile) => void;
   onViewResults: () => void;
+  onFinishBasics?: () => void;
+  onEditBasics?: () => void;
+  mode?: 'basics' | 'country';
   totalMatches: number;
   lang: 'ar' | 'en';
 }
 
 interface StepConfig {
   id: string;
+  phase: 'basics' | 'country';
   titleAr: string;
   subtitleAr?: string;
   titleEn: string;
@@ -25,6 +30,9 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
   profile,
   onChangeProfile,
   onViewResults,
+  onFinishBasics,
+  onEditBasics,
+  mode = 'basics',
   totalMatches,
   lang,
 }) => {
@@ -46,21 +54,29 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
   const isDE = activeCountry === 'DE';
   const isUS = activeCountry === 'US';
 
-  // Reset step index to 0 when the user switches countries
+  const countryNameAr = isCA ? 'كندا' : isDE ? 'ألمانيا' : 'أمريكا';
+  const countryNameEn = isCA ? 'Canada' : isDE ? 'Germany' : 'United States';
+
+  // Reset step index to 0 when the user switches countries or switches between basics and country mode
   useEffect(() => {
     setCurrentStepIndex(0);
-  }, [activeCountry]);
+  }, [activeCountry, mode]);
 
   const allSteps: StepConfig[] = [
+    // ════════════════════════════════════════════════════════════════════════
+    // PHASE 1: SHARED BASIC QUESTIONS (Used Across ALL Countries: CA, DE, US)
+    // ════════════════════════════════════════════════════════════════════════
     {
       id: 'residenceCountry',
+      phase: 'basics',
       titleAr: 'بلد الإقامة الحالي؟',
-      subtitleAr: 'الدولة التي تتواجد فيها الآن فعلياً.',
+      subtitleAr: 'الدولة التي تتواجد فيها الآن فعلياً (تُستخدم لجميع الدول).',
       titleEn: 'Current country of residence?',
-      subtitleEn: 'The country where you currently live.',
+      subtitleEn: 'The country where you currently live (shared across all countries).',
     },
     {
       id: 'residenceStatus',
+      phase: 'basics',
       titleAr: 'وضعك القانوني في بلد إقامتك؟',
       subtitleAr: 'يحدد مسارات السفارة أو إعادة التوطين المتاحة لك.',
       titleEn: 'Legal status in residence country?',
@@ -68,247 +84,66 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
       showIf: (p) => p.residenceCountry !== undefined && p.residenceCountry !== 'CA',
     },
     {
-      id: 'canadaStatus',
-      titleAr: 'وضعك القانوني داخل كندا؟',
-      subtitleAr: 'نوع التصريح الحالي داخل كندا.',
-      titleEn: 'Current status in Canada?',
-      subtitleEn: 'Your current permit or legal status inside Canada.',
-      showIf: (p) => isCA && p.residenceCountry === 'CA',
-    },
-    {
       id: 'citizenships',
+      phase: 'basics',
       titleAr: 'الجنسية؟',
-      subtitleAr: 'يمكنك اختيار أكثر من جنسية.',
+      subtitleAr: 'يمكنك اختيار أكثر من جنسية (تُستخدم لجميع الدول).',
       titleEn: 'Citizenship?',
-      subtitleEn: 'Select one or more.',
+      subtitleEn: 'Select one or more (used across all countries).',
       isMulti: true,
-    },
-    // ── US ONLY: DV Lottery Country of Birth
-    {
-      id: 'usDvEligibleBirth',
-      titleAr: 'بلد الميلاد لقرعة اللوتري الأمريكية (DV Lottery)؟',
-      subtitleAr: 'قرعة الـ 55,000 جرين كارد تعتمد على بلد الميلاد (أو بلد ميلاد الزوج/الزوجة) وليس الجنسية.',
-      titleEn: 'Country of Birth for US DV Lottery?',
-      subtitleEn: 'The 55,000 Green Card Lottery is based on country of birth (or spouse’s country of birth).',
-      showIf: () => isUS,
     },
     {
       id: 'age',
+      phase: 'basics',
       titleAr: 'العمر؟',
-      subtitleAr: isCA
-        ? 'أعلى نقاط عمر في Express Entry تكون بين 20 و29 سنة (110 نقاط).'
-        : isDE
-          ? 'بطاقة الفرص الألمانية (Chancenkarte) تمنح +2 نقطة تحت 35 سنة، و+1 نقطة بين 35 و40 سنة.'
-          : 'مهم لمسارات الدراسة والعمل في الولايات المتحدة.',
+      subtitleAr: 'يُستخدم لحساب نقاط العمر في كندا (CRS) وألمانيا (Chancenkarte) وأمريكا.',
       titleEn: 'Age?',
-      subtitleEn: isCA
-        ? 'Max Express Entry CRS age points are at ages 20–29 (110 pts).'
-        : isDE
-          ? 'Germany Chancenkarte awards +2 pts under age 35, and +1 pt for ages 35–40.'
-          : 'Used to evaluate US study, work, and family age rules.',
+      subtitleEn: 'Used to calculate age points across Canada (CRS), Germany (Chancenkarte), and the USA.',
     },
     {
       id: 'education',
+      phase: 'basics',
       titleAr: 'المؤهل الدراسي؟',
-      subtitleAr: 'أعلى شهادة تخرجت منها.',
+      subtitleAr: 'أعلى شهادة تخرجت منها (تُستخدم لجميع الدول).',
       titleEn: 'Highest Education?',
-      subtitleEn: 'Highest completed diploma or degree.',
-    },
-    // ── CANADA ONLY: Studied in Canada
-    {
-      id: 'canadianEducation',
-      titleAr: 'هل درست في كندا؟',
-      subtitleAr: 'تمنحك +15 إلى +30 نقطة في CRS وتؤهلك لتصريح عمل الخريجين PGWP.',
-      titleEn: 'Studied in Canada?',
-      subtitleEn: 'Awards +15 to +30 CRS points and PGWP eligibility.',
-      showIf: () => isCA,
-    },
-    // ── GERMANY ONLY: Credential Recognition (ANABIN / ZAB)
-    {
-      id: 'deDegreeRecognition',
-      titleAr: 'معادلة الشهادة في ألمانيا (ANABIN / ZAB)؟',
-      subtitleAr: 'المعادلة الكاملة تؤهلك مباشرة لبطاقة الفرص، والمعادلة الجزئية تمنح +4 نقاط.',
-      titleEn: 'German Credential Recognition (ANABIN / ZAB)?',
-      subtitleEn: 'Full recognition unlocks Chancenkarte directly; partial recognition awards +4 pts.',
-      showIf: () => isDE,
-    },
-    // ── GERMANY ONLY: German Language Level (CEFR)
-    {
-      id: 'germanLevel',
-      titleAr: 'مستوى اللغة الألمانية (CEFR)؟',
-      subtitleAr: 'B2 يمنح +3 نقاط، B1 يمنح +2 نقطة ويفتح التدريب المهني Ausbildung، وA1 يكفي كشرط أساسي.',
-      titleEn: 'German Language Level (CEFR)?',
-      subtitleEn: 'B2 = +3 pts, B1 = +2 pts & Ausbildung, A2 = +1 pt, A1 = baseline.',
-      showIf: () => isDE,
+      subtitleEn: 'Highest completed diploma or degree (shared across all countries).',
     },
     {
       id: 'englishCLB',
-      titleAr: isCA
-        ? 'مستوى الإنجليزية (CLB / IELTS)؟'
-        : isDE
-          ? 'مستوى الإنجليزية (IELTS / CEFR)؟'
-          : 'مستوى اللغة الإنجليزية؟',
-      subtitleAr: isCA
-        ? 'معيار CLB المعادل لاختبار IELTS أو CELPIP.'
-        : isDE
-          ? 'مستوى B2 (IELTS 6.0) يحقق الشرط الأساسي لبطاقة الفرص بدون ألماني، وC1 يمنح +1 نقطة إضافية.'
-          : 'مهم للقبول الجامعي F-1 والعمل المهني والجنسية الأمريكية.',
-      titleEn: isCA ? 'English Level (CLB / IELTS)?' : 'English Proficiency?',
-      subtitleEn: isCA
-        ? 'CLB equivalent for IELTS or CELPIP.'
-        : isDE
-          ? 'English B2 meets the Chancenkarte baseline without German; C1 awards +1 bonus point.'
-          : 'Important for US F-1 university study, work visas, and naturalization.',
-    },
-    // ── CANADA ONLY: French NCLC
-    {
-      id: 'frenchCLB',
-      titleAr: 'الفرنسية (NCLC)؟',
-      subtitleAr: 'مستوى 7+ يفتح سحوبات كندا الفرنسية بنقاط منخفضة (~400).',
-      titleEn: 'French (NCLC)?',
-      subtitleEn: 'NCLC 7+ unlocks low-cutoff Canadian French draws (~400).',
-      showIf: () => isCA,
+      phase: 'basics',
+      titleAr: 'مستوى اللغة الإنجليزية (IELTS / CLB / CEFR)؟',
+      subtitleAr: 'يُستخدم لكندا (CLB) وألمانيا (Chancenkarte B2/C1) وأمريكا (الدراسة والعمل).',
+      titleEn: 'English Proficiency (IELTS / CLB / CEFR)?',
+      subtitleEn: 'Used across Canada (CLB), Germany (Chancenkarte B2/C1), and the USA.',
     },
     {
       id: 'foreignExpYears',
+      phase: 'basics',
       titleAr: 'سنوات الخبرة المهنية؟',
-      subtitleAr: isCA
-        ? 'خبرة عمل ماهرة خارج كندا خلال آخر 10 سنوات.'
-        : isDE
-          ? 'في بطاقة الفرص الألمانية: 5+ سنوات تمنح +3 نقاط، وسنتان تمنح +2 نقطة.'
-          : 'في أمريكا: بكالوريوس + 5 سنوات خبرة يعادل الماجستير للتقديم الذاتي على الجرين كارد EB-2 NIW.',
+      subtitleAr: 'تُحتسب في نقاط كندا، ونقاط بطاقة الفرص الألمانية، والجرين كارد المهني الأمريكي.',
       titleEn: 'Skilled Work Experience?',
-      subtitleEn: isCA
-        ? 'Skilled work outside Canada within the last 10 years.'
-        : isDE
-          ? 'Chancenkarte: 5+ yrs = +3 pts, 2–4 yrs = +2 pts (last 5–7 years).'
-          : 'USA: Bachelor’s + 5 yrs progressive experience equals a Master’s for EB-2 NIW self-petition.',
-    },
-    // ── CANADA ONLY: Canadian Work Experience
-    {
-      id: 'canadianExpYears',
-      titleAr: 'الخبرة داخل كندا؟',
-      subtitleAr: 'خبرة عمل بتصريح قانوني داخل كندا.',
-      titleEn: 'Canadian Work Experience?',
-      subtitleEn: 'Authorized skilled work inside Canada.',
-      showIf: () => isCA,
+      subtitleEn: 'Counted for Canada CRS/FSW, Germany Chancenkarte, and US EB-2/EB-3.',
     },
     {
       id: 'occupationFields',
+      phase: 'basics',
       titleAr: 'مجال المهنة؟',
-      subtitleAr: isCA
-        ? 'سحوبات الفئات في كندا تتطلب 12 شهراً من الخبرة.'
-        : isDE
-          ? 'المهن المطلوبة (Mangelberufe) تمنح +1 نقطة وتخفض شرط راتب البطاقة الزرقاء إلى 45,934€.'
-          : 'تخصصات STEM تمنح 36 شهراً عمل OPT، والتمريض/العلاج الطبيعي له مسار جرين كارد سريع Schedule A.',
+      subtitleAr: 'يحدد المهن المطلوبة في كندا (Category Draws) وألمانيا (Mangelberufe) وأمريكا (STEM / Schedule A).',
       titleEn: 'Occupation Field?',
-      subtitleEn: isCA
-        ? 'Category draws in Canada require 12+ months experience.'
-        : isDE
-          ? 'Shortage fields (Mangelberufe) award +1 Chancenkarte pt & lower Blue Card salary (€45,934).'
-          : 'STEM unlocks 36-mo OPT; Nurses & PTs qualify for Schedule A fast-track Green Card.',
+      subtitleEn: 'Identifies priority occupations in Canada, Germany (Mangelberufe), and USA (STEM / Schedule A).',
       isMulti: true,
-    },
-    // ── US ONLY: Self-Petition & Extraordinary Profile (EB-2 NIW / EB-1A / O-1)
-    {
-      id: 'usExtraordinaryProfile',
-      titleAr: 'مؤهلات التقديم الذاتي والتميز المهني لأمريكا (EB-2 NIW / EB-1A / O-1)؟',
-      subtitleAr: 'حدد أي ميزة تنطبق عليك للتقديم على الجرين كارد المباشر بدون كفيل أو تأشيرة O-1.',
-      titleEn: 'US Self-Petition & Extraordinary Achievements (EB-2 NIW / EB-1A / O-1)?',
-      subtitleEn: 'Select all that apply for self-petition Green Cards (no employer needed) or O-1.',
-      isMulti: true,
-      showIf: () => isUS,
-    },
-    // ── CANADA ONLY: Canadian Job Offer & Province
-    {
-      id: 'jobOffer',
-      titleAr: 'عرض عمل رسمي في كندا؟',
-      subtitleAr: 'مطلوب لتصاريح العمل وبرامج الأطلسي والريف والمقاطعات.',
-      titleEn: 'Official Job Offer in Canada?',
-      subtitleEn: 'Required for Canadian work permits, AIP, RCIP, and PNPs.',
-      showIf: () => isCA,
-    },
-    {
-      id: 'jobOfferProvince',
-      titleAr: 'مقاطعة العمل في كندا؟',
-      titleEn: 'Canadian Job Province?',
-      showIf: (p) => isCA && p.jobOffer === 'yes',
-    },
-    // ── GERMANY ONLY: German Job Offer / Ausbildung / University Admission
-    {
-      id: 'deJobOfferType',
-      titleAr: 'عرض عمل أو عقد تدريب أو قبول جامعي في ألمانيا؟',
-      subtitleAr: 'حدد نوع العقد إن وجد (أو اختر "لا يوجد" للبحث عن عمل عبر بطاقة الفرص Chancenkarte).',
-      titleEn: 'German Job Offer, Ausbildung Contract, or University Admission?',
-      subtitleEn: 'Select your offer type (or "None" to apply via the Opportunity Card Chancenkarte).',
-      showIf: () => isDE,
-    },
-    // ── US ONLY: US Job Offer / Multinational Transfer / Form I-20
-    {
-      id: 'usJobOfferType',
-      titleAr: 'عرض عمل أو نقل شركة أو قبول جامعي في أمريكا؟',
-      subtitleAr: 'الجامعات والمراكز البحثية معفاة من قرعة H-1B طوال العام (Cap-Exempt).',
-      titleEn: 'US Job Offer, Multinational Transfer, or University Form I-20?',
-      subtitleEn: 'US universities & research hospitals are 100% exempt from the H-1B lottery cap.',
-      showIf: () => isUS,
-    },
-    // ── CANADA ONLY: Relatives in Canada & Province
-    {
-      id: 'relativesCitizenPR',
-      titleAr: 'أقارب في كندا (مواطن أو مقيم دائم)؟',
-      subtitleAr: 'للكفالة العائلية، أو +15 نقطة للأخ/الأخت، أو السوبر فيزا للوالدين والأجداد.',
-      titleEn: 'Relatives in Canada (Citizen or PR)?',
-      subtitleEn: 'For family sponsorship, +15 CRS sibling points, or Parent/Grandparent Super Visa.',
-      isMulti: true,
-      showIf: () => isCA,
-    },
-    {
-      id: 'relativesProvinces',
-      titleAr: 'مقاطعة الأقارب في كندا؟',
-      titleEn: 'Relatives’ Province in Canada?',
-      isMulti: true,
-      showIf: (p) =>
-        isCA &&
-        p.relativesCitizenPR !== undefined &&
-        p.relativesCitizenPR.length > 0,
-    },
-    // ── GERMANY ONLY: Relatives in Germany (§§ 27–36 AufenthG)
-    {
-      id: 'deRelatives',
-      titleAr: 'أقارب مقيمون في ألمانيا (لم الشمل العائلي §§ 27–36 AufenthG)؟',
-      subtitleAr: 'ألمانيا تسمح بلم شمل الزوج/الزوجة والأطفال القصر، وكذلك والدي حاملي البطاقة الزرقاء والعمالة الماهرة الجدد.',
-      titleEn: 'Family Members in Germany (Familiennachzug §§ 27–36 AufenthG)?',
-      subtitleEn: 'Germany allows spouses, minor children, and parents of post-2024 Skilled Workers/Blue Card holders.',
-      isMulti: true,
-      showIf: () => isDE,
-    },
-    // ── US ONLY: Relatives in the United States (Form I-130 / K-1)
-    {
-      id: 'usRelatives',
-      titleAr: 'أقارب في الولايات المتحدة (كفالة الجرين كارد العائلي I-130 / K-1)؟',
-      subtitleAr: 'الأقارب المباشرون لمواطن أمريكي (الزوج/الزوجة، الوالدان، والأطفال دون 21) لهم تأشيرات فورية غير محدودة.',
-      titleEn: 'Family Members in the United States (Form I-130 / K-1)?',
-      subtitleEn: 'Immediate Relatives of a US Citizen (Spouse, Parent, Unmarried Child <21) have NO quota backlog.',
-      isMulti: true,
-      showIf: () => isUS,
     },
     {
       id: 'fearOfReturn',
+      phase: 'basics',
       titleAr: 'حماية / لجوء؟',
-      subtitleAr: isCA
-        ? 'لتقييم مسارات الكفالة الخاصة SAH أو إعادة التوطين عبر المفوضية UNHCR.'
-        : isDE
-          ? 'لتقييم مسار إعادة التوطين الأممي UNHCR إلى ألمانيا أو اللجوء الداخلي BAMF.'
-          : 'لتقييم اللجوء داخل أمريكا (Form I-589) أو برنامج إعادة التوطين الخارجي USRAP.',
+      subtitleAr: 'لتقييم مسارات الحماية وإعادة التوطين أو اللجوء في الدولة التي تختارها.',
       titleEn: 'Refugee Protection / Asylum?',
-      subtitleEn: isCA
-        ? 'For Canadian SAH private sponsorship or UNHCR resettlement.'
-        : isDE
-          ? 'For UNHCR resettlement to Germany or inland BAMF asylum.'
-          : 'For US Asylum (Form I-589), USRAP overseas resettlement, or TPS.',
+      subtitleEn: 'Evaluates resettlement and asylum pathways in your chosen destination.',
     },
     {
       id: 'refugeeBackground',
+      phase: 'basics',
       titleAr: 'وثائق الحماية والتسجيل؟',
       subtitleAr: 'اختر ما يتوفر لديك حالياً.',
       titleEn: 'Protection Documents?',
@@ -319,43 +154,204 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
         p.residenceStatus === 'temporary_protection' ||
         p.residenceStatus === 'refugee_recognized',
     },
-    // ── CANADA ONLY: Funds in CAD ($ CAD)
+    {
+      id: 'admissibility',
+      phase: 'basics',
+      titleAr: 'السجل الجنائي والهجرة؟',
+      subtitleAr: 'شرط أساسي لجميع التأشيرات والإقامات الدائمة في كل الدول.',
+      titleEn: 'Criminal & Immigration Record?',
+      subtitleEn: 'Required for all visas and permanent residence pathways.',
+    },
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PHASE 2: COUNTRY-SPECIFIC QUESTIONS (Asked After Selecting a Country)
+    // ════════════════════════════════════════════════════════════════════════
+
+    // ── CANADA ONLY (CA)
+    {
+      id: 'canadaStatus',
+      phase: 'country',
+      titleAr: 'وضعك القانوني داخل كندا؟',
+      subtitleAr: 'نوع التصريح الحالي داخل كندا.',
+      titleEn: 'Current status in Canada?',
+      subtitleEn: 'Your current permit or legal status inside Canada.',
+      showIf: (p) => isCA && p.residenceCountry === 'CA',
+    },
+    {
+      id: 'canadianEducation',
+      phase: 'country',
+      titleAr: 'هل درست في كندا؟',
+      subtitleAr: 'تمنحك +15 إلى +30 نقطة في CRS وتؤهلك لتصريح عمل الخريجين PGWP.',
+      titleEn: 'Studied in Canada?',
+      subtitleEn: 'Awards +15 to +30 CRS points and PGWP eligibility.',
+      showIf: () => isCA,
+    },
+    {
+      id: 'frenchCLB',
+      phase: 'country',
+      titleAr: 'الفرنسية لكندا (NCLC)؟',
+      subtitleAr: 'مستوى 7+ يفتح سحوبات كندا الفرنسية بنقاط منخفضة (~400) ويمنح +50 نقطة إضافية.',
+      titleEn: 'French Level for Canada (NCLC)?',
+      subtitleEn: 'NCLC 7+ unlocks low-cutoff Canadian French draws (~400) and +50 CRS bonus pts.',
+      showIf: () => isCA,
+    },
+    {
+      id: 'canadianExpYears',
+      phase: 'country',
+      titleAr: 'الخبرة داخل كندا؟',
+      subtitleAr: 'خبرة عمل بتصريح قانوني داخل كندا (تفتح فئة الخبرة الكندية CEC).',
+      titleEn: 'Canadian Work Experience?',
+      subtitleEn: 'Authorized skilled work inside Canada (unlocks Canadian Experience Class CEC).',
+      showIf: () => isCA,
+    },
+    {
+      id: 'jobOffer',
+      phase: 'country',
+      titleAr: 'عرض عمل رسمي في كندا؟',
+      subtitleAr: 'مطلوب لتصاريح العمل وبرامج الأطلسي والريف والمقاطعات الكندية.',
+      titleEn: 'Official Job Offer in Canada?',
+      subtitleEn: 'Required for Canadian work permits, AIP, RCIP, and PNPs.',
+      showIf: () => isCA,
+    },
+    {
+      id: 'jobOfferProvince',
+      phase: 'country',
+      titleAr: 'مقاطعة العمل في كندا؟',
+      titleEn: 'Canadian Job Province?',
+      showIf: (p) => isCA && p.jobOffer === 'yes',
+    },
+    {
+      id: 'relativesCitizenPR',
+      phase: 'country',
+      titleAr: 'أقارب في كندا (مواطن أو مقيم دائم)؟',
+      subtitleAr: 'للكفالة العائلية، أو +15 نقطة للأخ/الأخت، أو السوبر فيزا للوالدين والأجداد.',
+      titleEn: 'Relatives in Canada (Citizen or PR)?',
+      subtitleEn: 'For family sponsorship, +15 CRS sibling points, or Parent/Grandparent Super Visa.',
+      isMulti: true,
+      showIf: () => isCA,
+    },
+    {
+      id: 'relativesProvinces',
+      phase: 'country',
+      titleAr: 'مقاطعة الأقارب في كندا؟',
+      titleEn: 'Relatives’ Province in Canada?',
+      isMulti: true,
+      showIf: (p) =>
+        isCA &&
+        p.relativesCitizenPR !== undefined &&
+        p.relativesCitizenPR.length > 0,
+    },
     {
       id: 'fundsCAD',
-      titleAr: 'المدخرات المتوفرة (بالدولار الكندي CAD)؟',
+      phase: 'country',
+      titleAr: 'المدخرات المتوفرة لكندا (بالدولار الكندي CAD)؟',
       subtitleAr: 'برنامج FSW يتطلب 15,263$ كندي للفرد، وتأشيرة الدراسة تتطلب 23,448$ كندي.',
-      titleEn: 'Settlement Funds (in Canadian Dollars — CAD)?',
+      titleEn: 'Settlement Funds for Canada (in Canadian Dollars — CAD)?',
       subtitleEn: '2026 IRCC rules: $15,263 CAD for FSW (single), $23,448 CAD for Study Permit.',
       showIf: () => isCA,
     },
-    // ── GERMANY ONLY: Blocked Account / Funds in EUR (€ EUR)
+
+    // ── GERMANY ONLY (DE)
+    {
+      id: 'deDegreeRecognition',
+      phase: 'country',
+      titleAr: 'معادلة الشهادة في ألمانيا (ANABIN / ZAB)؟',
+      subtitleAr: 'المعادلة الكاملة تؤهلك مباشرة لبطاقة الفرص، والمعادلة الجزئية تمنح +4 نقاط.',
+      titleEn: 'German Credential Recognition (ANABIN / ZAB)?',
+      subtitleEn: 'Full recognition unlocks Chancenkarte directly; partial recognition awards +4 pts.',
+      showIf: () => isDE,
+    },
+    {
+      id: 'germanLevel',
+      phase: 'country',
+      titleAr: 'مستوى اللغة الألمانية (CEFR)؟',
+      subtitleAr: 'B2 يمنح +3 نقاط، B1 يمنح +2 نقطة ويفتح التدريب المهني Ausbildung، وA1 يكفي كشرط أساسي.',
+      titleEn: 'German Language Level (CEFR)?',
+      subtitleEn: 'B2 = +3 pts, B1 = +2 pts & Ausbildung, A2 = +1 pt, A1 = baseline.',
+      showIf: () => isDE,
+    },
+    {
+      id: 'deJobOfferType',
+      phase: 'country',
+      titleAr: 'عرض عمل أو عقد تدريب أو قبول جامعي في ألمانيا؟',
+      subtitleAr: 'حدد نوع العقد إن وجد (أو اختر "لا يوجد" للبحث عن عمل عبر بطاقة الفرص Chancenkarte).',
+      titleEn: 'German Job Offer, Ausbildung Contract, or University Admission?',
+      subtitleEn: 'Select your offer type (or "None" to apply via the Opportunity Card Chancenkarte).',
+      showIf: () => isDE,
+    },
+    {
+      id: 'deRelatives',
+      phase: 'country',
+      titleAr: 'أقارب مقيمون في ألمانيا (لم الشمل العائلي §§ 27–36 AufenthG)؟',
+      subtitleAr: 'ألمانيا تسمح بلم شمل الزوج/الزوجة والأطفال القصر، وكذلك والدي حاملي البطاقة الزرقاء والعمالة الماهرة الجدد.',
+      titleEn: 'Family Members in Germany (Familiennachzug §§ 27–36 AufenthG)?',
+      subtitleEn: 'Germany allows spouses, minor children, and parents of post-2024 Skilled Workers/Blue Card holders.',
+      isMulti: true,
+      showIf: () => isDE,
+    },
     {
       id: 'deFundsEUR',
+      phase: 'country',
       titleAr: 'القدرة المالية / الحساب المغلق في ألمانيا (باليورو € EUR)؟',
       subtitleAr: 'في 2026: بطاقة الفرص تتطلب 13,092€ (1,091€/شهرياً) والدراسة تتطلب 11,904€ (992€/شهرياً).',
       titleEn: 'Blocked Account (Sperrkonto) / Savings in Euros (€ EUR)?',
       subtitleEn: '2026 rules: €13,092/yr (€1,091/mo) for Chancenkarte; €11,904/yr (€992/mo) for Study Visa.',
       showIf: () => isDE,
     },
-    // ── US ONLY: Funds / Investment Capital in USD ($ USD)
+
+    // ── US ONLY (US)
+    {
+      id: 'usDvEligibleBirth',
+      phase: 'country',
+      titleAr: 'بلد الميلاد لقرعة اللوتري الأمريكية (DV Lottery)؟',
+      subtitleAr: 'قرعة الـ 55,000 جرين كارد تعتمد على بلد الميلاد (أو بلد ميلاد الزوج/الزوجة) وليس الجنسية.',
+      titleEn: 'Country of Birth for US DV Lottery?',
+      subtitleEn: 'The 55,000 Green Card Lottery is based on country of birth (or spouse’s country of birth).',
+      showIf: () => isUS,
+    },
+    {
+      id: 'usExtraordinaryProfile',
+      phase: 'country',
+      titleAr: 'مؤهلات التقديم الذاتي والتميز المهني لأمريكا (EB-2 NIW / EB-1A / O-1)؟',
+      subtitleAr: 'حدد أي ميزة تنطبق عليك للتقديم على الجرين كارد المباشر بدون كفيل أو تأشيرة O-1.',
+      titleEn: 'US Self-Petition & Extraordinary Achievements (EB-2 NIW / EB-1A / O-1)?',
+      subtitleEn: 'Select all that apply for self-petition Green Cards (no employer needed) or O-1.',
+      isMulti: true,
+      showIf: () => isUS,
+    },
+    {
+      id: 'usJobOfferType',
+      phase: 'country',
+      titleAr: 'عرض عمل أو نقل شركة أو قبول جامعي في أمريكا؟',
+      subtitleAr: 'الجامعات والمراكز البحثية معفاة من قرعة H-1B طوال العام (Cap-Exempt).',
+      titleEn: 'US Job Offer, Multinational Transfer, or University Form I-20?',
+      subtitleEn: 'US universities & research hospitals are 100% exempt from the H-1B lottery cap.',
+      showIf: () => isUS,
+    },
+    {
+      id: 'usRelatives',
+      phase: 'country',
+      titleAr: 'أقارب في الولايات المتحدة (كفالة الجرين كارد العائلي I-130 / K-1)؟',
+      subtitleAr: 'الأقارب المباشرون لمواطن أمريكي (الزوج/الزوجة، الوالدان، والأطفال دون 21) لهم تأشيرات فورية غير محدودة.',
+      titleEn: 'Family Members in the United States (Form I-130 / K-1)?',
+      subtitleEn: 'Immediate Relatives of a US Citizen (Spouse, Parent, Unmarried Child <21) have NO quota backlog.',
+      isMulti: true,
+      showIf: () => isUS,
+    },
     {
       id: 'usFundsUSD',
+      phase: 'country',
       titleAr: 'المدخرات أو رأس مال الاستثمار في أمريكا (بالدولار الأمريكي $ USD)؟',
       subtitleAr: 'تأشيرة الدراسة F-1 تتطلب ~25,000$، وتأشيرة المستثمر E-2 ~100,000$+، والجرين كارد الاستثماري EB-5 800,000$.',
       titleEn: 'Available Funds / Investment Capital (in US Dollars — $ USD)?',
       subtitleEn: 'F-1 Study I-20 ~$25,000+; E-2 Treaty Investor ~$100,000+; EB-5 Green Card $800,000.',
       showIf: () => isUS,
     },
-    {
-      id: 'admissibility',
-      titleAr: 'السجل الجنائي والهجرة؟',
-      subtitleAr: 'شرط أساسي لجميع التأشيرات والإقامات الدائمة.',
-      titleEn: 'Criminal & Immigration Record?',
-      subtitleEn: 'Required for all visas and permanent residence pathways.',
-    },
   ];
 
-  const activeSteps = allSteps.filter((step) => !step.showIf || step.showIf(profile));
+  const activeSteps = allSteps.filter(
+    (step) => step.phase === mode && (!step.showIf || step.showIf(profile)),
+  );
   const currentStep = activeSteps[currentStepIndex] || activeSteps[0];
 
   useEffect(() => {
@@ -373,6 +369,8 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
     if (currentStepIndex < activeSteps.length - 1) {
       setDirection('forward');
       setCurrentStepIndex((prev) => prev + 1);
+    } else if (mode === 'basics' && onFinishBasics) {
+      onFinishBasics();
     } else {
       onViewResults();
     }
@@ -455,9 +453,146 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
   };
 
   const stepHint = isAr ? currentStep.subtitleAr : currentStep.subtitleEn;
+  const isLastStep = currentStepIndex === activeSteps.length - 1;
+  const finalStepLabel =
+    mode === 'basics'
+      ? isAr
+        ? 'اختر الدولة ←'
+        : 'Select Country →'
+      : isAr
+      ? 'النتائج ←'
+      : 'Results →';
 
   return (
     <div className="survey-wrapper">
+      {/* Two-Phase Context Banner: Shared Basics vs. Country-Specific Questions */}
+      {mode === 'basics' ? (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+            border: '1.5px solid #c7d2fe',
+            borderRadius: 18,
+            padding: '14px 18px',
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <CountryFlag code="CA" size={14} />
+                <CountryFlag code="DE" size={14} />
+                <CountryFlag code="US" size={14} />
+              </span>
+              <span style={{ fontSize: 13.5, fontWeight: 900, color: '#1e1b4b' }}>
+                {isAr
+                  ? 'المرحلة 1: الأسئلة الأساسية المشتركة لجميع الدول'
+                  : 'Part 1: Shared Basic Questions (Used for All Countries)'}
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: '#3730a3', fontWeight: 600, marginTop: 4 }}>
+              {isAr
+                ? 'إجاباتك هنا (العمر، التعليم، الإنجليزية، الخبرة، الجنسية) تُحفظ وتُستخدم تلقائياً لكل الدول. بعد ذلك تختار الدولة للإجابة على أسئلتها الخاصة.'
+                : 'Your answers here (age, education, English, work experience, nationality) are saved and reused across all countries. Next, you select a country for its specific questions.'}
+            </div>
+          </div>
+
+          {onFinishBasics && (
+            <button
+              type="button"
+              onClick={onFinishBasics}
+              style={{
+                background: '#4f46e5',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: 999,
+                padding: '7px 14px',
+                fontSize: 12,
+                fontWeight: 800,
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              {isAr ? 'اختر الدولة الآن ←' : 'Select Country Now →'}
+            </button>
+          )}
+        </div>
+      ) : (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+            border: '1.5px solid #86efac',
+            borderRadius: 18,
+            padding: '14px 18px',
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <CountryFlag code={activeCountry} size={18} />
+              <span style={{ fontSize: 13.5, fontWeight: 900, color: '#064e3b' }}>
+                {isAr
+                  ? `المرحلة 2: الأسئلة الخاصة بـ ${countryNameAr} فقط (${activeSteps.length} أسئلة)`
+                  : `Part 2: ${countryNameEn}-Specific Questions (${activeSteps.length} questions)`}
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: '#065f46', fontWeight: 700, marginTop: 4 }}>
+              {isAr
+                ? `✓ إجاباتك الأساسية المشتركة محفوظة ومُطبقة تلقائياً لجميع الدول! أجب الآن فقط عن المتغيرات الخاصة بـ ${countryNameAr}.`
+                : `✓ Your shared basic answers are already saved and applied across all countries! Now answer only the questions specific to ${countryNameEn}.`}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            {onEditBasics && (
+              <button
+                type="button"
+                onClick={onEditBasics}
+                style={{
+                  background: '#ffffff',
+                  color: '#065f46',
+                  border: '1.5px solid #6ee7b7',
+                  borderRadius: 999,
+                  padding: '6px 12px',
+                  fontSize: 11.5,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                {isAr ? '✎ تعديل الأسئلة المشتركة' : '✎ Edit Shared Basics'}
+              </button>
+            )}
+            {onFinishBasics && (
+              <button
+                type="button"
+                onClick={onFinishBasics}
+                style={{
+                  background: '#065f46',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: 999,
+                  padding: '6px 12px',
+                  fontSize: 11.5,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                {isAr ? '🌍 تغيير الدولة' : '🌍 Change Country'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="survey-top-nav">
         <button
           type="button"
@@ -486,13 +621,7 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
             background: '#eef2ff',
           }}
         >
-          {currentStepIndex === activeSteps.length - 1
-            ? isAr
-              ? 'النتائج ←'
-              : 'Results →'
-            : isAr
-            ? 'التالي ←'
-            : 'Next →'}
+          {isLastStep ? finalStepLabel : isAr ? 'التالي ←' : 'Next →'}
         </button>
       </div>
 
@@ -2001,7 +2130,7 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
                         criminality: 'minor',
                       });
                     }
-                    setTimeout(() => onViewResults(), 200);
+                    setTimeout(() => goNext(), 200);
                   },
                 );
               })}
@@ -2038,13 +2167,7 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
               cursor: 'pointer',
             }}
           >
-            {currentStepIndex === activeSteps.length - 1
-              ? isAr
-                ? 'النتائج ←'
-                : 'Results →'
-              : isAr
-              ? 'التالي ←'
-              : 'Next →'}
+            {isLastStep ? finalStepLabel : isAr ? 'التالي ←' : 'Next →'}
           </button>
         </div>
       </div>
@@ -2056,8 +2179,8 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
           className="btn-skip-colorful"
         >
           {isAr
-            ? `تخطي كل الأسئلة (${totalMatches}) ⏭`
-            : `Skip all questions (${totalMatches}) ⏭`}
+            ? `تخطي كل الأسئلة للنتائج (${totalMatches}) ⏭`
+            : `Skip all questions to results (${totalMatches}) ⏭`}
         </button>
       </div>
     </div>

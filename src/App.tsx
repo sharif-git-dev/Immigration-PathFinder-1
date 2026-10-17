@@ -9,7 +9,7 @@ import { PRESET_PROFILES } from './data/presets';
 const STORAGE_KEY = 'canada_pathfinder_profile_v4';
 const LANG_KEY = 'canada_pathfinder_lang';
 
-type AppStage = 'lang' | 'intro' | 'countries' | 'survey' | 'results';
+type AppStage = 'lang' | 'intro' | 'basics' | 'countries' | 'country_survey' | 'results';
 
 const COUNTRY_META: {
   code: TargetCountry;
@@ -19,6 +19,8 @@ const COUNTRY_META: {
   nameAr: string;
   subEn: string;
   subAr: string;
+  extraQuestionsEn: string;
+  extraQuestionsAr: string;
   authorityEn: string;
   authorityAr: string;
   officialDomain: string;
@@ -34,6 +36,8 @@ const COUNTRY_META: {
     nameAr: 'كندا',
     subEn: 'CRS Points • Express Entry • Provincial (PNP) • Super Visa • Study • Asylum',
     subAr: 'نقاط CRS • الدخول السريع • ترشيح المقاطعات • سوبر فيزا • دراسة • لجوء',
+    extraQuestionsEn: 'Canada-only questions: Canadian study/work, French NCLC, LMIA job offer, relatives in Canada (Super Visa / sibling CRS), and $ CAD funds.',
+    extraQuestionsAr: 'أسئلة كندا الإضافية: الدراسة أو العمل بكندا، اللغة الفرنسية NCLC، عقد عمل LMIA، الأقارب في كندا (الأخ/الأخت/الأبوين/الأجداد)، والمدخرات بالدولار الكندي ($ CAD).',
     authorityEn: 'IRCC — Government of Canada (canada.ca)',
     authorityAr: 'وزارة الهجرة الكندية الرسمية IRCC (canada.ca)',
     officialDomain: 'canada.ca',
@@ -49,6 +53,8 @@ const COUNTRY_META: {
     nameAr: 'ألمانيا',
     subEn: 'Chancenkarte (6 pts) • EU Blue Card • ANABIN/ZAB • Ausbildung • Study • BAMF',
     subAr: 'بطاقة الفرص Chancenkarte • البطاقة الزرقاء • معادلة ANABIN • أوسبيلدونغ • BAMF',
+    extraQuestionsEn: 'Germany-only questions: ANABIN/ZAB degree recognition, German CEFR (A1–C1), Blue Card / Ausbildung contract, family (§ 36 AufenthG), and € EUR Blocked Account.',
+    extraQuestionsAr: 'أسئلة ألمانيا الإضافية: معادلة الشهادة (ANABIN/ZAB)، مستوى اللغة الألمانية (A1–C1)، عقود البطاقة الزرقاء/التدريب المهني، الأقارب في ألمانيا (§ 36 AufenthG)، والحساب المغلق باليورو (€ EUR).',
     authorityEn: 'Federal Gov Portal & BAMF (make-it-in-germany.com • bamf.de)',
     authorityAr: 'البوابة الفيدرالية الرسمية والمكتب الاتحادي (make-it-in-germany.com • bamf.de)',
     officialDomain: 'make-it-in-germany.com',
@@ -64,6 +70,8 @@ const COUNTRY_META: {
     nameAr: 'الولايات المتحدة (أمريكا)',
     subEn: 'EB-2 NIW / EB-1A • DV Lottery • H-1B / O-1 • Form I-130 Family • F-1 OPT • USCIS',
     subAr: 'جرين كارد EB-2 NIW • اللوتري • فيزا H-1B / O-1 • لم شمل I-130 • دراسة F-1 • USCIS',
+    extraQuestionsEn: 'USA-only questions: DV Lottery country of birth, EB-2 NIW / EB-1A self-petition achievements, H-1B / Cap-Exempt sponsorship, Form I-130 family, and $ USD funds.',
+    extraQuestionsAr: 'أسئلة أمريكا الإضافية: بلد الميلاد للوتري DV، إنجازات الإعفاء الوطني EB-2 NIW والقدرات الفائقة، كفالة H-1B والجامعات المعفاة، الأقارب الفوريون Form I-130، والمدخرات بالدولار الأمريكي ($ USD).',
     authorityEn: 'U.S. Citizenship & Immigration Services (uscis.gov • dhs.gov)',
     authorityAr: 'دائرة الهجرة والجنسية الأمريكية الرسمية (uscis.gov • dhs.gov)',
     officialDomain: 'uscis.gov',
@@ -146,6 +154,19 @@ export const App: React.FC = () => {
     });
   };
 
+  // When switching countries in the navbar, tell the user their shared basics are kept and open that country's specific questions
+  const handleHeaderCountrySwitch = (code: TargetCountry) => {
+    selectSingleCountry(code);
+    if (stage === 'basics') {
+      setStage('country_survey');
+    } else if (stage === 'results') {
+      // If on results, let them answer the newly selected country's specific questions (where they can also skip to results)
+      setStage('country_survey');
+    } else {
+      setStage('country_survey');
+    }
+  };
+
   const outcomes = evaluateAll(profile);
   const openOutcomes = outcomes.filter(
     (o) => o.program.availability !== 'closed' && o.program.availability !== 'paused',
@@ -225,32 +246,34 @@ export const App: React.FC = () => {
         <div className="launch-card" key="intro-slide">
           <div className="maple-hero-badge">✨</div>
           <h1 style={{ fontSize: 25, fontWeight: 800, color: '#1e1b4b' }}>
-            {isAr ? 'كيف نساعدك؟' : 'How We Help You'}
+            {isAr ? 'كيف يعمل الموقع؟' : 'How It Works'}
           </h1>
 
           <div className="feature-pills-grid">
             <div className="feature-pill-card feature-pill-indigo" style={{ animationDelay: '0.05s' }}>
-              <span className="feature-pill-icon">🎯</span>
+              <span className="feature-pill-icon">🌍</span>
               <span className="feature-pill-title">
                 {isAr
-                  ? 'أسئلة مخصصة لكل دولة على حدة (كندا أو ألمانيا أو أمريكا)'
-                  : 'Dedicated Country-Specific Questions (CA, DE, or US)'}
+                  ? '1. أسئلة أساسية مشتركة تُحفظ وتُستخدم لجميع الدول'
+                  : '1. Shared Basic Questions Saved & Reused for All Countries'}
               </span>
             </div>
 
             <div className="feature-pill-card feature-pill-emerald" style={{ animationDelay: '0.12s' }}>
-              <span className="feature-pill-icon">🏛️</span>
+              <span className="feature-pill-icon">🎯</span>
               <span className="feature-pill-title">
                 {isAr
-                  ? 'موثق مباشرة من المواقع الحكومية الرسمية (IRCC • BAMF • USCIS)'
-                  : 'Verified Directly Against Official Gov Portals (IRCC • BAMF • USCIS)'}
+                  ? '2. اختر الدولة وأجب فقط عن أسئلتها الإضافية الخاصة'
+                  : '2. Select a Country & Answer Only Its Specific Questions'}
               </span>
             </div>
 
             <div className="feature-pill-card feature-pill-amber" style={{ animationDelay: '0.19s' }}>
-              <span className="feature-pill-icon">🤖</span>
+              <span className="feature-pill-icon">🏛️</span>
               <span className="feature-pill-title">
-                {isAr ? 'حساب نقاطك ومستشار ذكي لحالتك' : 'Exact Points & AI Case Advisor'}
+                {isAr
+                  ? '3. نتائج موثقة من المواقع الحكومية ومستشار ذكي'
+                  : '3. Official Gov Verification & AI Case Advisor'}
               </span>
             </div>
           </div>
@@ -258,9 +281,11 @@ export const App: React.FC = () => {
           <button
             type="button"
             className="btn-primary-gradient"
-            onClick={() => setStage('countries')}
+            onClick={() => setStage('basics')}
           >
-            {isAr ? 'التالي: اختر دولة الهجرة ←' : 'Next: Choose Destination Country →'}
+            {isAr
+              ? 'ابدأ الخطوة 1: الأسئلة الأساسية المشتركة ←'
+              : 'Start Step 1: Shared Basic Questions →'}
           </button>
 
           <div>
@@ -277,33 +302,68 @@ export const App: React.FC = () => {
     );
   }
 
-  // SLIDE 3: Select ONE Destination Country (each country has its own questions & variables)
+  // SLIDE 3 (After Basics or when choosing a country): Tell user their shared basics are ready & ask them to pick a country for its specific questions
   if (stage === 'countries') {
     return (
       <div className="standalone-screen" dir={isAr ? 'rtl' : 'ltr'}>
-        <div className="launch-card" key="countries-slide" style={{ maxWidth: 680 }}>
+        <div className="launch-card" key="countries-slide" style={{ maxWidth: 700 }}>
+          {/* Shared Basic Answers Confirmation Banner */}
           <div
-            className="maple-hero-badge"
             style={{
-              width: 'auto',
-              display: 'inline-flex',
-              padding: '0 22px',
+              background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+              border: '1.5px solid #86efac',
+              borderRadius: 18,
+              padding: '14px 18px',
+              marginBottom: 20,
+              textAlign: isAr ? 'right' : 'left',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
               gap: 10,
             }}
           >
-            <CountryFlag code="CA" size={22} />
-            <CountryFlag code="DE" size={22} />
-            <CountryFlag code="US" size={22} />
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontSize: 14, fontWeight: 900, color: '#064e3b' }}>
+                {isAr
+                  ? '✅ إجاباتك الأساسية محفوظة وتُستخدم لجميع الدول الثلاث!'
+                  : '✅ Your Shared Basic Answers Are Saved for All 3 Countries!'}
+              </div>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: '#065f46', marginTop: 3 }}>
+                {isAr
+                  ? 'عندما تنتقل بين كندا وألمانيا وأمريكا، لن تحتاج لإعادة الأسئلة الأساسية (العمر، التعليم، الإنجليزية، الخبرة، الجنسية) — ستجيب فقط عن الأسئلة الإضافية الخاصة بالدولة المختارة.'
+                  : 'Whenever you switch between Canada, Germany, and the USA, your basic answers (age, education, English, work experience, nationality) are automatically reused. You only answer the extra questions for the country you select.'}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setStage('basics')}
+              style={{
+                background: '#ffffff',
+                color: '#065f46',
+                border: '1.5px solid #6ee7b7',
+                borderRadius: 999,
+                padding: '6px 14px',
+                fontSize: 12,
+                fontWeight: 800,
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              {isAr ? '✎ تعديل الأساسيات المشتركة' : '✎ Edit Shared Basics'}
+            </button>
           </div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1e1b4b', marginBottom: 6 }}>
+
+          <h1 style={{ fontSize: 23, fontWeight: 800, color: '#1e1b4b', marginBottom: 6 }}>
             {isAr
-              ? 'اختر الدولة التي تريد فحص الهجرة إليها'
-              : 'Choose a Country to Evaluate'}
+              ? 'الخطوة 2: اختر الدولة للإجابة على أسئلتها الخاصة'
+              : 'Step 2: Select a Country for Its Specific Questions'}
           </h1>
-          <p style={{ fontSize: 13.5, color: '#475569', fontWeight: 600, marginBottom: 18, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 13.5, color: '#475569', fontWeight: 600, marginBottom: 16, lineHeight: 1.5 }}>
             {isAr
-              ? 'تُطرح الأسئلة وتُحسب النتيجة بناءً على قوانين الدولة المختارة فقط (شروط الأقارب، اللغة، معادلة الشهادة، والعملة الرسمية). يمكنك تبديل الدولة في أي وقت.'
-              : 'Questions, variables, and eligibility results are tailored exclusively to the single country you select (relatives, language tests, degree recognition, and currency).'}
+              ? 'لكل دولة أسئلتها الإضافية الخاصة بها (مثل نوع الأقارب المؤهلين، معادلة الشهادات، والعملة الرسمية):'
+              : 'Each country has its own additional questions and official legal variables:'}
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
@@ -350,8 +410,8 @@ export const App: React.FC = () => {
                           🏛️ {c.officialDomain}
                         </span>
                       </div>
-                      <div style={{ fontSize: 12.5, fontWeight: 600, color: '#475569', marginTop: 4 }}>
-                        {isAr ? c.subAr : c.subEn}
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginTop: 4 }}>
+                        {isAr ? c.extraQuestionsAr : c.extraQuestionsEn}
                       </div>
                       <div style={{ fontSize: 11.5, fontWeight: 700, color: '#0f766e', marginTop: 4 }}>
                         ✓ {isAr ? `المصدر الحكومي: ${c.authorityAr}` : `Verified Source: ${c.authorityEn}`}
@@ -384,7 +444,7 @@ export const App: React.FC = () => {
           <button
             type="button"
             className="btn-primary-gradient"
-            onClick={() => setStage('survey')}
+            onClick={() => setStage('country_survey')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -395,8 +455,8 @@ export const App: React.FC = () => {
             <CountryFlag code={activeCountryMeta.code} size={20} />
             <span>
               {isAr
-                ? `ابدأ أسئلة ${activeCountryMeta.shortNameAr} المخصصة`
-                : `Start ${activeCountryMeta.nameEn} Questions`}
+                ? `متابعة إلى أسئلة ${activeCountryMeta.shortNameAr} الإضافية ←`
+                : `Continue to ${activeCountryMeta.nameEn}-Specific Questions →`}
             </span>
           </button>
 
@@ -457,8 +517,8 @@ export const App: React.FC = () => {
                 }}
                 title={
                   isAr
-                    ? 'اختر دولة واحدة لعرض أسئلتها ونتائجها الخاصة'
-                    : 'Select a country to load its specific questions and results'
+                    ? 'بدّل الدولة مع الاحتفاظ بإجاباتك الأساسية المشتركة تلقائياً'
+                    : 'Switch country while keeping your shared basic answers automatically'
                 }
               >
                 {COUNTRY_META.map((c) => {
@@ -467,7 +527,7 @@ export const App: React.FC = () => {
                     <button
                       key={c.code}
                       type="button"
-                      onClick={() => selectSingleCountry(c.code)}
+                      onClick={() => handleHeaderCountrySwitch(c.code)}
                       style={{
                         border: active ? `1.5px solid ${c.accent}` : '1.5px solid transparent',
                         background: active ? '#ffffff' : 'transparent',
@@ -491,14 +551,23 @@ export const App: React.FC = () => {
                 })}
               </div>
 
-              {/* Questions vs Results Switcher */}
+              {/* Shared Basics vs Country Questions vs Results Switcher */}
               <div className="view-switch">
                 <button
                   type="button"
-                  className={`view-switch-btn ${stage === 'survey' ? 'active' : ''}`}
-                  onClick={() => setStage('survey')}
+                  className={`view-switch-btn ${stage === 'basics' ? 'active' : ''}`}
+                  onClick={() => setStage('basics')}
                 >
-                  {isAr ? 'الأسئلة' : 'Questions'}
+                  {isAr ? 'الأساسيات المشتركة' : 'Shared Basics'}
+                </button>
+                <button
+                  type="button"
+                  className={`view-switch-btn ${stage === 'country_survey' ? 'active' : ''}`}
+                  onClick={() => setStage('country_survey')}
+                >
+                  {isAr
+                    ? `أسئلة ${activeCountryMeta.shortNameAr}`
+                    : `${activeCountryMeta.shortNameEn} Questions`}
                 </button>
                 <button
                   type="button"
@@ -525,7 +594,7 @@ export const App: React.FC = () => {
                 <span>{isAr ? 'English' : 'العربية'}</span>
               </button>
 
-              {/* Reset Button with clean SVG icon and text (no ambiguous '↺' glyph) */}
+              {/* Reset Button with clean SVG icon and text */}
               <button
                 type="button"
                 onClick={handleReset}
@@ -558,10 +627,23 @@ export const App: React.FC = () => {
       </header>
 
       <main style={{ flex: 1 }}>
-        {stage === 'survey' ? (
+        {stage === 'basics' ? (
           <StepSurvey
             profile={profile}
             onChangeProfile={setProfile}
+            mode="basics"
+            onFinishBasics={() => setStage('countries')}
+            onViewResults={() => setStage('results')}
+            totalMatches={totalRelevant}
+            lang={lang}
+          />
+        ) : stage === 'country_survey' ? (
+          <StepSurvey
+            profile={profile}
+            onChangeProfile={setProfile}
+            mode="country"
+            onFinishBasics={() => setStage('countries')}
+            onEditBasics={() => setStage('basics')}
             onViewResults={() => setStage('results')}
             totalMatches={totalRelevant}
             lang={lang}
@@ -570,10 +652,10 @@ export const App: React.FC = () => {
           <SimpleResults
             profile={profile}
             outcomes={outcomes}
-            onOpenSurvey={() => setStage('survey')}
+            onOpenSurvey={() => setStage('country_survey')}
             onSelectCountry={(code) => {
               selectSingleCountry(code);
-              setStage('survey');
+              setStage('country_survey');
             }}
             lang={lang}
           />
