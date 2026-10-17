@@ -8,6 +8,8 @@ import { PRESET_PROFILES } from './data/presets';
 const STORAGE_KEY = 'canada_pathfinder_profile_v4';
 const LANG_KEY = 'canada_pathfinder_lang';
 
+type AppStage = 'lang' | 'intro' | 'survey' | 'results';
+
 export const App: React.FC = () => {
   const [lang, setLang] = useState<'ar' | 'en'>(() => {
     try {
@@ -29,10 +31,11 @@ export const App: React.FC = () => {
     return PRESET_PROFILES[0].profile;
   });
 
-  const [activeView, setActiveView] = useState<'survey' | 'results'>('survey');
+  const [stage, setStage] = useState<AppStage>('lang');
 
   useEffect(() => {
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    // Keep layout direction stable (ltr) so selecting a language never flips the screen
+    document.documentElement.dir = 'ltr';
     document.documentElement.lang = lang;
     try {
       localStorage.setItem(LANG_KEY, lang);
@@ -61,42 +64,139 @@ export const App: React.FC = () => {
 
   const handleReset = () => {
     setProfile({});
-    setActiveView('survey');
+    setStage('lang');
   };
 
   const isAr = lang === 'ar';
 
+  // SLIDE 1: Standalone Language Selection Screen (by itself on screen, no layout flip)
+  if (stage === 'lang') {
+    return (
+      <div className="standalone-screen">
+        <div className="launch-card">
+          <div className="maple-hero-badge">🍁</div>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#1e1b4b' }}>
+            Canada PathFinder
+          </h1>
+
+          <div className="lang-grid">
+            <button
+              type="button"
+              className="lang-choice-btn"
+              onClick={() => {
+                setLang('ar');
+                setStage('intro');
+              }}
+            >
+              <span className="lang-choice-title">العربية</span>
+              <span className="lang-choice-sub">ابدأ بالعربية</span>
+            </button>
+
+            <button
+              type="button"
+              className="lang-choice-btn"
+              onClick={() => {
+                setLang('en');
+                setStage('intro');
+              }}
+            >
+              <span className="lang-choice-title">English</span>
+              <span className="lang-choice-sub">Continue in English</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // SLIDE 2: Standalone "What We Help You With" Screen
+  if (stage === 'intro') {
+    return (
+      <div className="standalone-screen">
+        <div className="launch-card" key="intro-slide">
+          <div className="maple-hero-badge">✨</div>
+          <h1 style={{ fontSize: 25, fontWeight: 800, color: '#1e1b4b' }}>
+            {isAr ? 'كيف نساعدك؟' : 'How We Help You'}
+          </h1>
+
+          <div className="feature-pills-grid">
+            <div className="feature-pill-card feature-pill-indigo" style={{ animationDelay: '0.05s' }}>
+              <span className="feature-pill-icon">🧭</span>
+              <span className="feature-pill-title">
+                {isAr ? '48 برنامج هجرة رسمي' : '48 Official Pathways'}
+              </span>
+            </div>
+
+            <div className="feature-pill-card feature-pill-emerald" style={{ animationDelay: '0.12s' }}>
+              <span className="feature-pill-icon">⚡</span>
+              <span className="feature-pill-title">
+                {isAr ? 'فحص أهليتك ونقاطك فوراً' : 'Instant Score & Match'}
+              </span>
+            </div>
+
+            <div className="feature-pill-card feature-pill-amber" style={{ animationDelay: '0.19s' }}>
+              <span className="feature-pill-icon">🤖</span>
+              <span className="feature-pill-title">
+                {isAr ? 'مستشار ذكي لحالتك' : 'AI Case Advisor'}
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn-primary-gradient"
+            onClick={() => setStage('survey')}
+          >
+            {isAr ? 'ابدأ الأسئلة' : 'Start Questions'}
+          </button>
+
+          <div>
+            <button
+              type="button"
+              className="btn-skip-ghost"
+              onClick={() => setStage('results')}
+            >
+              {isAr ? 'تخطي كل الأسئلة للنتائج ⏭' : 'Skip all questions to results ⏭'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
-      dir={isAr ? 'rtl' : 'ltr'}
       style={{
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--bg-page)',
       }}
     >
       <header className="clean-app-header">
         <div className="container">
           <div className="header-inner-row">
-            <div className="brand-logo">
-              <span style={{ fontSize: 24 }}>🍁</span>
-              <span className="brand-name">{isAr ? 'برامج هجرة كندا' : 'Canada PathFinder'}</span>
+            <div
+              className="brand-logo"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setStage('intro')}
+            >
+              <span style={{ fontSize: 22 }}>🍁</span>
+              <span className="brand-name">{isAr ? 'هجرة كندا' : 'Canada PathFinder'}</span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <div className="view-switch">
                 <button
                   type="button"
-                  className={`view-switch-btn ${activeView === 'survey' ? 'active' : ''}`}
-                  onClick={() => setActiveView('survey')}
+                  className={`view-switch-btn ${stage === 'survey' ? 'active' : ''}`}
+                  onClick={() => setStage('survey')}
                 >
                   {isAr ? 'الأسئلة' : 'Questions'}
                 </button>
                 <button
                   type="button"
-                  className={`view-switch-btn ${activeView === 'results' ? 'active' : ''}`}
-                  onClick={() => setActiveView('results')}
+                  className={`view-switch-btn ${stage === 'results' ? 'active' : ''}`}
+                  onClick={() => setStage('results')}
                 >
                   {isAr ? `النتائج (${totalRelevant})` : `Results (${totalRelevant})`}
                 </button>
@@ -124,20 +224,19 @@ export const App: React.FC = () => {
       </header>
 
       <main style={{ flex: 1 }}>
-        {activeView === 'survey' ? (
+        {stage === 'survey' ? (
           <StepSurvey
             profile={profile}
             onChangeProfile={setProfile}
-            onViewResults={() => setActiveView('results')}
+            onViewResults={() => setStage('results')}
             totalMatches={totalRelevant}
             lang={lang}
-            onChangeLang={setLang}
           />
         ) : (
           <SimpleResults
             profile={profile}
             outcomes={outcomes}
-            onOpenSurvey={() => setActiveView('survey')}
+            onOpenSurvey={() => setStage('survey')}
             lang={lang}
           />
         )}

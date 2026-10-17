@@ -9,7 +9,6 @@ interface StepSurveyProps {
   onViewResults: () => void;
   totalMatches: number;
   lang: 'ar' | 'en';
-  onChangeLang: (lang: 'ar' | 'en') => void;
 }
 
 interface StepConfig {
@@ -28,7 +27,6 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
   onViewResults,
   totalMatches,
   lang,
-  onChangeLang,
 }) => {
   const isAr = lang === 'ar';
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -45,123 +43,118 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
 
   const allSteps: StepConfig[] = [
     {
-      id: 'language',
-      titleAr: 'اختر اللغة / Choose Language',
-      titleEn: 'Choose Language / اختر اللغة',
-    },
-    {
       id: 'residenceCountry',
-      titleAr: 'أين تقيم حالياً؟',
+      titleAr: 'بلد الإقامة؟',
       subtitleAr: 'الدولة التي تتواجد فيها الآن فعلياً.',
-      titleEn: 'Where do you live?',
-      subtitleEn: 'The country where you currently reside.',
+      titleEn: 'Residence?',
+      subtitleEn: 'The country where you currently live.',
     },
     {
       id: 'residenceStatus',
-      titleAr: 'ما وضعك القانوني في بلد إقامتك؟',
-      subtitleAr: 'يحدد مسارات السفارة أو الحماية وإعادة التوطين المتاحة لك.',
-      titleEn: 'Legal status where you live?',
+      titleAr: 'وضعك القانوني؟',
+      subtitleAr: 'يحدد مسارات السفارة أو الحماية المتاحة لك.',
+      titleEn: 'Legal status?',
       subtitleEn: 'Determines visa office and protection eligibility.',
       showIf: (p) => p.residenceCountry !== undefined && p.residenceCountry !== 'CA',
     },
     {
       id: 'canadaStatus',
-      titleAr: 'ما وضعك القانوني داخل كندا؟',
-      subtitleAr: 'نوع التصريح الحالي الذي تحمله داخل كندا.',
-      titleEn: 'Current status in Canada?',
+      titleAr: 'وضعك بكندا؟',
+      subtitleAr: 'نوع التصريح الحالي داخل كندا.',
+      titleEn: 'Status in Canada?',
       subtitleEn: 'Your current permit or legal status inside Canada.',
       showIf: (p) => p.residenceCountry === 'CA',
     },
     {
       id: 'citizenships',
-      titleAr: 'ما هي جنسيتك؟',
+      titleAr: 'الجنسية؟',
       subtitleAr: 'يمكنك اختيار أكثر من جنسية.',
-      titleEn: 'Your citizenship?',
+      titleEn: 'Citizenship?',
       subtitleEn: 'Select one or more.',
       isMulti: true,
     },
     {
       id: 'age',
-      titleAr: 'كم عمرك؟',
-      subtitleAr: 'أعلى نقاط عمر في Express Entry تكون بين 20 و29 سنة.',
-      titleEn: 'Your age?',
-      subtitleEn: 'Max CRS age points are awarded at ages 20–29.',
+      titleAr: 'العمر؟',
+      subtitleAr: 'أعلى نقاط عمر تكون بين 20 و29 سنة.',
+      titleEn: 'Age?',
+      subtitleEn: 'Max CRS age points are at ages 20–29.',
     },
     {
       id: 'education',
-      titleAr: 'المؤهل الدراسي؟',
+      titleAr: 'التعليم؟',
       subtitleAr: 'أعلى شهادة تخرجت منها.',
-      titleEn: 'Highest education?',
+      titleEn: 'Education?',
       subtitleEn: 'Highest completed diploma or degree.',
     },
     {
       id: 'canadianEducation',
-      titleAr: 'هل درست في كندا؟',
-      subtitleAr: 'تمنحك +15 إلى +30 نقطة CRS وتؤهلك لتصريح PGWP.',
+      titleAr: 'دراسة بكندا؟',
+      subtitleAr: 'تمنحك +15 إلى +30 نقطة وتؤهلك لتصريح PGWP.',
       titleEn: 'Studied in Canada?',
       subtitleEn: 'Awards +15 to +30 CRS points and PGWP eligibility.',
     },
     {
       id: 'englishCLB',
-      titleAr: 'مستوى اللغة الإنجليزية؟',
-      subtitleAr: 'معيار CLB المعادل لاختبار IELTS General أو CELPIP.',
-      titleEn: 'English level (CLB)?',
+      titleAr: 'الإنجليزية (CLB)؟',
+      subtitleAr: 'معيار CLB المعادل لاختبار IELTS أو CELPIP.',
+      titleEn: 'English (CLB)?',
       subtitleEn: 'CLB equivalent for IELTS or CELPIP.',
     },
     {
       id: 'frenchCLB',
-      titleAr: 'مستوى اللغة الفرنسية؟',
-      subtitleAr: 'مستوى NCLC 7+ يفتح سحوبات الفرنسية بنقاط منخفضة (~390) وتصريح عمل معفى من LMIA.',
-      titleEn: 'French level (NCLC)?',
-      subtitleEn: 'NCLC 7+ unlocks low-cutoff French draws and LMIA-exempt work permits.',
+      titleAr: 'الفرنسية (NCLC)؟',
+      subtitleAr: 'مستوى 7+ يفتح سحوبات الفرنسية بنقاط منخفضة (~390).',
+      titleEn: 'French (NCLC)?',
+      subtitleEn: 'NCLC 7+ unlocks low-cutoff French draws (~390).',
     },
     {
       id: 'foreignExpYears',
-      titleAr: 'سنوات الخبرة خارج كندا؟',
-      subtitleAr: 'خبرة عمل ماهرة مدفوعة الأجر خلال آخر 10 سنوات.',
-      titleEn: 'Skilled work outside Canada?',
-      subtitleEn: 'Paid skilled work within the last 10 years.',
+      titleAr: 'الخبرة بالخارج؟',
+      subtitleAr: 'خبرة عمل ماهرة خلال آخر 10 سنوات.',
+      titleEn: 'Foreign work?',
+      subtitleEn: 'Skilled work within the last 10 years.',
     },
     {
       id: 'canadianExpYears',
-      titleAr: 'سنوات الخبرة داخل كندا؟',
-      subtitleAr: 'خبرة عمل بتصريح قانوني داخل كندا خلال آخر 3 سنوات.',
-      titleEn: 'Skilled work inside Canada?',
-      subtitleEn: 'Authorized skilled work in Canada within the last 3 years.',
+      titleAr: 'الخبرة بكندا؟',
+      subtitleAr: 'خبرة عمل بتصريح قانوني داخل كندا.',
+      titleEn: 'Canadian work?',
+      subtitleEn: 'Authorized skilled work in Canada.',
     },
     {
       id: 'occupationFields',
-      titleAr: 'مجال عملك؟',
-      subtitleAr: 'سحوبات الفئات لعام 2026 تتطلب 12 شهراً من الخبرة في المهن المستهدفة.',
-      titleEn: 'Occupation field?',
-      subtitleEn: '2026 category draws require 12+ months experience.',
+      titleAr: 'المهنة؟',
+      subtitleAr: 'سحوبات الفئات تتطلب 12 شهراً من الخبرة.',
+      titleEn: 'Occupation?',
+      subtitleEn: 'Category draws require 12+ months experience.',
       isMulti: true,
     },
     {
       id: 'jobOffer',
-      titleAr: 'هل لديك عرض عمل في كندا؟',
-      subtitleAr: 'مطلوب لتصاريح العمل وبرامج الأطلسي والريف (تم إلغاء نقاط عرض العمل من CRS في مارس 2025).',
-      titleEn: 'Job offer in Canada?',
-      subtitleEn: 'Required for work permits & regional pilots (CRS bonus points removed March 2025).',
+      titleAr: 'عرض عمل بكندا؟',
+      subtitleAr: 'مطلوب لتصاريح العمل وبرامج الأطلسي والريف.',
+      titleEn: 'Job offer?',
+      subtitleEn: 'Required for work permits & regional pilots.',
     },
     {
       id: 'jobOfferProvince',
-      titleAr: 'مقاطعة عرض العمل؟',
-      titleEn: 'Job offer province?',
+      titleAr: 'مقاطعة العمل؟',
+      titleEn: 'Job province?',
       showIf: (p) => p.jobOffer === 'yes',
     },
     {
       id: 'relativesCitizenPR',
-      titleAr: 'أقارب مواطنون أو مقيمون دائمون في كندا؟',
-      subtitleAr: 'يفيد في الكفالة العائلية أو +15 نقطة للأخ/الأخت أو نقاط المقاطعات.',
-      titleEn: 'Relatives in Canada (Citizen/PR)?',
-      subtitleEn: 'Used for sponsorship, +15 sibling points, or provincial family streams.',
+      titleAr: 'أقارب بكندا؟',
+      subtitleAr: 'للكفالة العائلية أو +15 نقطة للأخ/الأخت.',
+      titleEn: 'Family in Canada?',
+      subtitleEn: 'For sponsorship or +15 sibling points.',
       isMulti: true,
     },
     {
       id: 'relativesProvinces',
-      titleAr: 'مقاطعة إقامة أقاربك؟',
-      titleEn: 'Province of your relatives?',
+      titleAr: 'مقاطعة الأقارب؟',
+      titleEn: 'Relatives province?',
       isMulti: true,
       showIf: (p) =>
         p.relativesCitizenPR !== undefined &&
@@ -169,16 +162,16 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
     },
     {
       id: 'fearOfReturn',
-      titleAr: 'هل تخشى العودة لبلدك الأصلي؟',
-      subtitleAr: 'بسبب الاضطهاد أو الحرب (لتقييم مسارات الكفالة الخاصة SAH أو المفوضية UNHCR).',
-      titleEn: 'Fear of returning home?',
-      subtitleEn: 'Due to persecution or conflict (for SAH / UNHCR resettlement).',
+      titleAr: 'حماية / لجوء؟',
+      subtitleAr: 'لتقييم مسارات الكفالة الخاصة SAH أو المفوضية UNHCR.',
+      titleEn: 'Refugee protection?',
+      subtitleEn: 'For SAH sponsorship or UNHCR resettlement.',
     },
     {
       id: 'refugeeBackground',
-      titleAr: 'وثائق الحماية أو الكفيل؟',
+      titleAr: 'وثائق الحماية؟',
       subtitleAr: 'اختر ما يتوفر لديك حالياً.',
-      titleEn: 'Protection documents or sponsor?',
+      titleEn: 'Protection docs?',
       subtitleEn: 'Select all that apply.',
       isMulti: true,
       showIf: (p) =>
@@ -188,16 +181,16 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
     },
     {
       id: 'fundsCAD',
-      titleAr: 'المدخرات المتوفرة (بالدولار الكندي)؟',
-      subtitleAr: 'برنامج FSW يتطلب 15,263$ للفرد، وتصريح الدراسة يتطلب 23,448$ سنوياً (تحديث 2026).',
-      titleEn: 'Available funds (CAD)?',
-      subtitleEn: '2026 minimums: $15,263 for FSW (1 person), $23,448/yr for Study Permit.',
+      titleAr: 'المدخرات (CAD)؟',
+      subtitleAr: 'FSW يتطلب 15,263$ للفرد، والدراسة 23,448$.',
+      titleEn: 'Savings (CAD)?',
+      subtitleEn: '$15,263 for FSW (1 person), $23,448 for Study.',
     },
     {
       id: 'admissibility',
-      titleAr: 'السجل الجنائي والطبي؟',
-      subtitleAr: 'شرط أساسي لجميع التأشيرات والإقامات الكندية.',
-      titleEn: 'Background & medical record?',
+      titleAr: 'السجل الجنائي؟',
+      subtitleAr: 'شرط أساسي لجميع التأشيرات الكندية.',
+      titleEn: 'Clean record?',
       subtitleEn: 'Required for all Canadian visas and PR.',
     },
   ];
@@ -230,12 +223,6 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
       setDirection('backward');
       setCurrentStepIndex((prev) => prev - 1);
     }
-  };
-
-  const jumpToStep = (idx: number) => {
-    if (idx === currentStepIndex) return;
-    setDirection(idx > currentStepIndex ? 'forward' : 'backward');
-    setCurrentStepIndex(idx);
   };
 
   const handleSingleSelect = (field: keyof Profile, value: any) => {
@@ -322,7 +309,7 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
             cursor: currentStepIndex === 0 ? 'default' : 'pointer',
           }}
         >
-          {isAr ? '→ السابق' : '← Back'}
+          {isAr ? '← السابق' : '← Back'}
         </button>
 
         <span className="step-counter-pill">
@@ -334,7 +321,7 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
           onClick={onViewResults}
           className="btn-results-pill"
         >
-          {isAr ? `تخطي الكل (${totalMatches}) ←` : `Skip All (${totalMatches}) →`}
+          {isAr ? `تخطي الكل (${totalMatches}) →` : `Skip All (${totalMatches}) →`}
         </button>
       </div>
 
@@ -342,27 +329,14 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
         <div className="progress-fill" style={{ width: `${progressPercentage}%` }} />
       </div>
 
-      <div className="step-dots-row" role="tablist">
-        {activeSteps.map((step, idx) => (
-          <button
-            key={step.id}
-            type="button"
-            onClick={() => jumpToStep(idx)}
-            title={`${idx + 1}: ${isAr ? step.titleAr : step.titleEn}`}
-            className={`step-dot ${
-              idx === currentStepIndex ? 'active' : idx < currentStepIndex ? 'completed' : ''
-            }`}
-          />
-        ))}
-      </div>
-
       <div key={currentStep.id} className={`step-card step-animate-${direction}`}>
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: 10,
-            marginBottom: showStepInfo && stepHint ? 8 : 28,
+            marginBottom: showStepInfo && stepHint ? 8 : 26,
             flexWrap: 'wrap',
           }}
         >
@@ -382,45 +356,12 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
         </div>
 
         {showStepInfo && stepHint && (
-          <div className="info-bang-popover" style={{ marginBottom: 24 }}>
+          <div className="info-bang-popover" style={{ marginBottom: 22, textAlign: 'center' }}>
             {stepHint}
           </div>
         )}
 
         <div className="step-options-container">
-          {/* 0. Language Selection */}
-          {currentStep.id === 'language' && (
-            <div className="option-list">
-              <button
-                type="button"
-                onClick={() => {
-                  onChangeLang('ar');
-                  setTimeout(() => goNext(), 160);
-                }}
-                className={`option-tile ${lang === 'ar' ? 'selected' : ''}`}
-              >
-                <span className="option-tile-title" style={{ fontSize: 19 }}>
-                  العربية
-                </span>
-                <span className="option-tile-check">✓</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  onChangeLang('en');
-                  setTimeout(() => goNext(), 160);
-                }}
-                className={`option-tile ${lang === 'en' ? 'selected' : ''}`}
-              >
-                <span className="option-tile-title" style={{ fontSize: 19 }}>
-                  English
-                </span>
-                <span className="option-tile-check">✓</span>
-              </button>
-            </div>
-          )}
-
           {/* 1. Residence Country */}
           {currentStep.id === 'residenceCountry' && (
             <div>
