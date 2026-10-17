@@ -11,6 +11,7 @@ import {
   translateCheckResultBadge,
 } from '../data/arabicTranslations';
 import { AiCaseAssistant } from './AiCaseAssistant';
+import { CountryFlag } from './CountryFlag';
 
 interface SimpleResultsProps {
   profile?: Profile;
@@ -23,7 +24,9 @@ interface SimpleResultsProps {
 const COUNTRY_VERIFICATION_META: Record<
   TargetCountry,
   {
-    flag: string;
+    code: TargetCountry;
+    shortNameEn: string;
+    shortNameAr: string;
     nameEn: string;
     nameAr: string;
     authorityEn: string;
@@ -39,7 +42,9 @@ const COUNTRY_VERIFICATION_META: Record<
   }
 > = {
   CA: {
-    flag: '🍁',
+    code: 'CA',
+    shortNameEn: 'Canada',
+    shortNameAr: 'كندا',
     nameEn: 'Canada',
     nameAr: 'كندا',
     authorityEn: 'Immigration, Refugees and Citizenship Canada (IRCC — canada.ca)',
@@ -75,7 +80,9 @@ const COUNTRY_VERIFICATION_META: Record<
     ],
   },
   DE: {
-    flag: '🇩🇪',
+    code: 'DE',
+    shortNameEn: 'Germany',
+    shortNameAr: 'ألمانيا',
     nameEn: 'Germany',
     nameAr: 'ألمانيا',
     authorityEn: 'Federal Government Portal (Make it in Germany) & Federal Office BAMF',
@@ -117,7 +124,9 @@ const COUNTRY_VERIFICATION_META: Record<
     ],
   },
   US: {
-    flag: '🇺🇸',
+    code: 'US',
+    shortNameEn: 'USA',
+    shortNameAr: 'أمريكا',
     nameEn: 'United States',
     nameAr: 'الولايات المتحدة (أمريكا)',
     authorityEn: 'U.S. Citizenship and Immigration Services (USCIS — uscis.gov) & DHS',
@@ -237,7 +246,7 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
     const code = countryCode ?? 'CA';
     if (code === 'DE') {
       return {
-        flag: '🇩🇪',
+        code: 'DE' as TargetCountry,
         label: isAr ? 'ألمانيا' : 'Germany',
         bg: '#fef3c7',
         color: '#92400e',
@@ -246,7 +255,7 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
     }
     if (code === 'US') {
       return {
-        flag: '🇺🇸',
+        code: 'US' as TargetCountry,
         label: isAr ? 'أمريكا' : 'USA',
         bg: '#dbeafe',
         color: '#1e40af',
@@ -254,7 +263,7 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
       };
     }
     return {
-      flag: '🍁',
+      code: 'CA' as TargetCountry,
       label: isAr ? 'كندا' : 'Canada',
       bg: '#ffe4e6',
       color: '#9f1239',
@@ -355,8 +364,12 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
           crs.breakdown &&
           crs.breakdown.length > 0 && (
             <div className="detail-score-box">
-              <h4 className="detail-title" style={{ color: '#581c87' }}>
-                🍁 CRS ({crs.total} / 1200)
+              <h4
+                className="detail-title"
+                style={{ color: '#581c87', display: 'flex', alignItems: 'center', gap: 7 }}
+              >
+                <CountryFlag code="CA" size={15} />
+                <span>CRS ({crs.total} / 1200)</span>
               </h4>
               <div className="score-factor-grid">
                 {crs.breakdown.map((b, i) => (
@@ -373,8 +386,12 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
 
         {program.id === 'ee-fsw' && (
           <div className="detail-fsw-box">
-            <h4 className="detail-title" style={{ color: '#166534' }}>
-              🍁 FSW ({fsw.total} / 100)
+            <h4
+              className="detail-title"
+              style={{ color: '#166534', display: 'flex', alignItems: 'center', gap: 7 }}
+            >
+              <CountryFlag code="CA" size={15} />
+              <span>FSW ({fsw.total} / 100)</span>
             </h4>
             <div className="score-factor-grid">
               {fsw.factors.map((f, i) => (
@@ -393,8 +410,15 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
 
         {program.id === 'de-chancenkarte' && (
           <div className="detail-fsw-box">
-            <h4 className="detail-title" style={{ color: '#166534' }}>
-              🇩🇪 Chancenkarte ({chancen.total} {isAr ? 'نقاط — الحد الأدنى 6' : 'pts — Min 6 required'})
+            <h4
+              className="detail-title"
+              style={{ color: '#166534', display: 'flex', alignItems: 'center', gap: 7 }}
+            >
+              <CountryFlag code="DE" size={15} />
+              <span>
+                Chancenkarte ({chancen.total}{' '}
+                {isAr ? 'نقاط — الحد الأدنى 6' : 'pts — Min 6 required'})
+              </span>
             </h4>
             <div className="score-factor-grid">
               {chancen.factors.map((f, i) => (
@@ -583,9 +607,13 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
                   background: cBadge.bg,
                   color: cBadge.color,
                   border: `1px solid ${cBadge.border}`,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
                 }}
               >
-                {cBadge.flag} {cBadge.label}
+                <CountryFlag code={cBadge.code} size={14} />
+                <span>{cBadge.label}</span>
               </span>
               <span className={`clean-badge ${statusClass}`}>{statusLabel}</span>
               {result.score && (
@@ -663,9 +691,13 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
                   background: cBadge.bg,
                   color: cBadge.color,
                   border: `1px solid ${cBadge.border}`,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
                 }}
               >
-                {cBadge.flag} {cBadge.label}
+                <CountryFlag code={cBadge.code} size={13} />
+                <span>{cBadge.label}</span>
               </span>
               <span className={`clean-badge ${statusClass}`}>{statusLabel}</span>
               {result.score && (
@@ -746,8 +778,8 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
             gap: 10,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 28 }}>{vMeta.flag}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <CountryFlag code={vMeta.code} size={28} />
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <h2 style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', margin: 0 }}>
@@ -799,14 +831,14 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
                         fontWeight: 800,
                         color: '#1e293b',
                         cursor: 'pointer',
-                        display: 'flex',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 5,
+                        gap: 6,
                       }}
                     >
-                      <span>{other.flag}</span>
+                      <CountryFlag code={other.code} size={15} />
                       <span>
-                        {isAr ? `أسئلة ${other.nameAr.split(' ')[0]}` : `${code} Questions`}
+                        {isAr ? `أسئلة ${other.shortNameAr}` : `${other.shortNameEn} Questions`}
                       </span>
                     </button>
                   );
@@ -857,18 +889,26 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
             type="button"
             onClick={onOpenSurvey}
             className="btn-edit-answers"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
           >
-            {isAr
-              ? `→ تعديل إجابات ${vMeta.nameAr.split(' ')[0]} (${vMeta.flag})`
-              : `← Edit ${vMeta.nameEn} Answers (${vMeta.flag})`}
+            <CountryFlag code={vMeta.code} size={15} />
+            <span>
+              {isAr
+                ? `→ تعديل إجابات ${vMeta.shortNameAr}`
+                : `← Edit ${vMeta.shortNameEn} Answers`}
+            </span>
           </button>
 
           <input
             type="text"
             placeholder={
               isAr
-                ? `بحث في مسارات ${vMeta.nameAr.split(' ')[0]}...`
-                : `Search ${vMeta.nameEn} pathways...`
+                ? `بحث في مسارات ${vMeta.shortNameAr}...`
+                : `Search ${vMeta.shortNameEn} pathways...`
             }
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

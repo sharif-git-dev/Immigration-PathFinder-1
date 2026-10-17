@@ -3,6 +3,7 @@ import type { Profile, TargetCountry } from './engine/types';
 import { evaluateAll } from './engine/evaluate';
 import { SimpleResults } from './components/SimpleResults';
 import { StepSurvey } from './components/StepSurvey';
+import { CountryFlag } from './components/CountryFlag';
 import { PRESET_PROFILES } from './data/presets';
 
 const STORAGE_KEY = 'canada_pathfinder_profile_v4';
@@ -12,7 +13,8 @@ type AppStage = 'lang' | 'intro' | 'countries' | 'survey' | 'results';
 
 const COUNTRY_META: {
   code: TargetCountry;
-  flag: string;
+  shortNameEn: string;
+  shortNameAr: string;
   nameEn: string;
   nameAr: string;
   subEn: string;
@@ -26,7 +28,8 @@ const COUNTRY_META: {
 }[] = [
   {
     code: 'CA',
-    flag: '🍁',
+    shortNameEn: 'Canada',
+    shortNameAr: 'كندا',
     nameEn: 'Canada',
     nameAr: 'كندا',
     subEn: 'CRS Points • Express Entry • Provincial (PNP) • Super Visa • Study • Asylum',
@@ -40,7 +43,8 @@ const COUNTRY_META: {
   },
   {
     code: 'DE',
-    flag: '🇩🇪',
+    shortNameEn: 'Germany',
+    shortNameAr: 'ألمانيا',
     nameEn: 'Germany',
     nameAr: 'ألمانيا',
     subEn: 'Chancenkarte (6 pts) • EU Blue Card • ANABIN/ZAB • Ausbildung • Study • BAMF',
@@ -54,7 +58,8 @@ const COUNTRY_META: {
   },
   {
     code: 'US',
-    flag: '🇺🇸',
+    shortNameEn: 'USA',
+    shortNameAr: 'أمريكا',
     nameEn: 'United States',
     nameAr: 'الولايات المتحدة (أمريكا)',
     subEn: 'EB-2 NIW / EB-1A • DV Lottery • H-1B / O-1 • Form I-130 Family • F-1 OPT • USCIS',
@@ -163,10 +168,18 @@ export const App: React.FC = () => {
     return (
       <div className="standalone-screen" dir="ltr">
         <div className="launch-card">
-          <div className="maple-hero-badge" style={{ fontSize: 26, gap: 4 }}>
-            <span>🍁</span>
-            <span>🇩🇪</span>
-            <span>🇺🇸</span>
+          <div
+            className="maple-hero-badge"
+            style={{
+              width: 'auto',
+              display: 'inline-flex',
+              padding: '0 22px',
+              gap: 12,
+            }}
+          >
+            <CountryFlag code="CA" size={24} />
+            <CountryFlag code="DE" size={24} />
+            <CountryFlag code="US" size={24} />
           </div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: '#1e1b4b' }}>
             Immigration PathFinder
@@ -269,8 +282,18 @@ export const App: React.FC = () => {
     return (
       <div className="standalone-screen" dir={isAr ? 'rtl' : 'ltr'}>
         <div className="launch-card" key="countries-slide" style={{ maxWidth: 680 }}>
-          <div className="maple-hero-badge" style={{ fontSize: 28 }}>
-            🌍
+          <div
+            className="maple-hero-badge"
+            style={{
+              width: 'auto',
+              display: 'inline-flex',
+              padding: '0 22px',
+              gap: 10,
+            }}
+          >
+            <CountryFlag code="CA" size={22} />
+            <CountryFlag code="DE" size={22} />
+            <CountryFlag code="US" size={22} />
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1e1b4b', marginBottom: 6 }}>
             {isAr
@@ -306,8 +329,8 @@ export const App: React.FC = () => {
                     boxShadow: active ? '0 10px 24px -8px rgba(15, 23, 42, 0.14)' : 'none',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <span style={{ fontSize: 36, lineHeight: 1 }}>{c.flag}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <CountryFlag code={c.code} size={32} />
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
@@ -345,13 +368,13 @@ export const App: React.FC = () => {
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 900,
-                      fontSize: 15,
+                      fontSize: 14,
                       background: active ? c.accent : '#f1f5f9',
                       color: active ? '#ffffff' : '#94a3b8',
                       flexShrink: 0,
                     }}
                   >
-                    {active ? '●' : '○'}
+                    {active ? '✓' : ''}
                   </span>
                 </button>
               );
@@ -362,10 +385,19 @@ export const App: React.FC = () => {
             type="button"
             className="btn-primary-gradient"
             onClick={() => setStage('survey')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+            }}
           >
-            {isAr
-              ? `ابدأ أسئلة ${activeCountryMeta.nameAr} المخصصة (${activeCountryMeta.flag})`
-              : `Start ${activeCountryMeta.nameEn} Questions (${activeCountryMeta.flag})`}
+            <CountryFlag code={activeCountryMeta.code} size={20} />
+            <span>
+              {isAr
+                ? `ابدأ أسئلة ${activeCountryMeta.shortNameAr} المخصصة`
+                : `Start ${activeCountryMeta.nameEn} Questions`}
+            </span>
           </button>
 
           <div>
@@ -375,7 +407,7 @@ export const App: React.FC = () => {
               onClick={() => setStage('results')}
             >
               {isAr
-                ? `تخطي كل الأسئلة إلى نتائج ${activeCountryMeta.nameAr} ⏭`
+                ? `تخطي كل الأسئلة إلى نتائج ${activeCountryMeta.shortNameAr} ⏭`
                 : `Skip all questions to ${activeCountryMeta.nameEn} results ⏭`}
             </button>
           </div>
@@ -396,36 +428,37 @@ export const App: React.FC = () => {
       <header className="clean-app-header">
         <div className="container">
           <div className="header-inner-row">
+            {/* Brand Logo with Real SVG Country Flag */}
             <div
               className="brand-logo"
               style={{ cursor: 'pointer' }}
               onClick={() => setStage('countries')}
-              title={isAr ? 'تغيير الدولة' : 'Change Country'}
+              title={isAr ? 'انقر لتغيير الدولة' : 'Click to change country'}
             >
-              <span style={{ fontSize: 22 }}>{activeCountryMeta.flag}</span>
+              <CountryFlag code={activeCountryMeta.code} size={22} />
               <span className="brand-name">
                 {isAr
-                  ? `هجرة ${activeCountryMeta.nameAr}`
-                  : `${activeCountryMeta.nameEn} PathFinder`}
+                  ? `مستكشف الهجرة — ${activeCountryMeta.shortNameAr}`
+                  : `${activeCountryMeta.shortNameEn} PathFinder`}
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {/* Single-Country Active Switcher in Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {/* Single-Country Active Switcher in Header (with real SVG flags for CA, DE, US) */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
-                  background: '#f8fafc',
-                  padding: '3px 6px',
-                  borderRadius: 999,
+                  background: '#f1f5f9',
+                  padding: '4px',
+                  borderRadius: 12,
                   border: '1px solid #e2e8f0',
                 }}
                 title={
                   isAr
                     ? 'اختر دولة واحدة لعرض أسئلتها ونتائجها الخاصة'
-                    : 'Select a single country to load its specific questions and results'
+                    : 'Select a country to load its specific questions and results'
                 }
               >
                 {COUNTRY_META.map((c) => {
@@ -436,34 +469,36 @@ export const App: React.FC = () => {
                       type="button"
                       onClick={() => selectSingleCountry(c.code)}
                       style={{
-                        border: 'none',
-                        background: active ? c.accent : 'transparent',
-                        color: active ? '#ffffff' : '#64748b',
-                        fontSize: 12,
+                        border: active ? `1.5px solid ${c.accent}` : '1.5px solid transparent',
+                        background: active ? '#ffffff' : 'transparent',
+                        color: active ? '#0f172a' : '#475569',
+                        fontSize: 13,
                         fontWeight: 800,
                         padding: '5px 11px',
-                        borderRadius: 999,
+                        borderRadius: 9,
                         cursor: 'pointer',
-                        display: 'flex',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 5,
+                        gap: 7,
+                        boxShadow: active ? '0 2px 6px rgba(15, 23, 42, 0.08)' : 'none',
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      <span>{c.flag}</span>
-                      <span>{isAr ? c.nameAr.split(' ')[0] : c.code}</span>
+                      <CountryFlag code={c.code} size={16} />
+                      <span>{isAr ? c.shortNameAr : c.shortNameEn}</span>
                     </button>
                   );
                 })}
               </div>
 
+              {/* Questions vs Results Switcher */}
               <div className="view-switch">
                 <button
                   type="button"
                   className={`view-switch-btn ${stage === 'survey' ? 'active' : ''}`}
                   onClick={() => setStage('survey')}
                 >
-                  {isAr ? `أسئلة ${activeCountryMeta.nameAr.split(' ')[0]}` : `${activeCountryMeta.code} Questions`}
+                  {isAr ? 'الأسئلة' : 'Questions'}
                 </button>
                 <button
                   type="button"
@@ -474,21 +509,48 @@ export const App: React.FC = () => {
                 </button>
               </div>
 
+              {/* Language Switch Button */}
               <button
                 type="button"
                 onClick={() => setLang(isAr ? 'en' : 'ar')}
                 className="btn-reset"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+                title={isAr ? 'Switch to English' : 'التبديل إلى العربية'}
               >
-                {isAr ? 'EN' : 'عربي'}
+                <span style={{ fontSize: 14 }}>🌐</span>
+                <span>{isAr ? 'English' : 'العربية'}</span>
               </button>
 
+              {/* Reset Button with clean SVG icon and text (no ambiguous '↺' glyph) */}
               <button
                 type="button"
                 onClick={handleReset}
-                title={isAr ? 'إعادة ضبط' : 'Reset'}
+                title={isAr ? 'إعادة ضبط جميع الإجابات' : 'Reset all answers'}
                 className="btn-reset"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                }}
               >
-                ↺
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                <span>{isAr ? 'إعادة' : 'Reset'}</span>
               </button>
             </div>
           </div>
@@ -519,18 +581,45 @@ export const App: React.FC = () => {
       </main>
 
       <footer className="clean-footer">
-        <div className="container" style={{ display: 'flex', gap: 18, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div
+          className="container"
+          style={{
+            display: 'flex',
+            gap: 18,
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+          }}
+        >
           <span style={{ fontSize: 12, color: '#64748b', fontWeight: 700 }}>
             {isAr ? 'المصادر الحكومية الرسمية المعتمدة:' : 'Verified Official Government Sources:'}
           </span>
-          <a href="https://www.canada.ca/en/immigration-refugees-citizenship.html" target="_blank" rel="noopener noreferrer">
-            🍁 IRCC (canada.ca) ↗
+          <a
+            href="https://www.canada.ca/en/immigration-refugees-citizenship.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <CountryFlag code="CA" size={14} />
+            <span>IRCC (canada.ca) ↗</span>
           </a>
-          <a href="https://www.make-it-in-germany.com/en/" target="_blank" rel="noopener noreferrer">
-            🇩🇪 Make it in Germany / BAMF ↗
+          <a
+            href="https://www.make-it-in-germany.com/en/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <CountryFlag code="DE" size={14} />
+            <span>Make it in Germany / BAMF ↗</span>
           </a>
-          <a href="https://www.uscis.gov" target="_blank" rel="noopener noreferrer">
-            🇺🇸 USCIS (uscis.gov) ↗
+          <a
+            href="https://www.uscis.gov"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <CountryFlag code="US" size={14} />
+            <span>USCIS (uscis.gov) ↗</span>
           </a>
         </div>
       </footer>
