@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Outcome } from '../engine/evaluate';
 import type { Profile, TargetCountry } from '../engine/types';
 import { calculateCRS } from '../engine/crs';
@@ -47,33 +47,31 @@ const COUNTRY_VERIFICATION_META: Record<
     shortNameAr: 'كندا',
     nameEn: 'Canada',
     nameAr: 'كندا',
-    authorityEn: 'Immigration, Refugees and Citizenship Canada (IRCC — canada.ca)',
-    authorityAr: 'وزارة الهجرة واللاجئين والمواطنة الكندية الرسمية (IRCC — canada.ca)',
-    lawEn: 'Immigration and Refugee Protection Act (IRPA) & Regulations (IRPR)',
-    lawAr: 'قانون الهجرة وحماية اللاجئين الكندي (IRPA / IRPR) وتعليمات 2026',
-    variablesNoteEn:
-      'Evaluated using Canada-only variables: CRS (1200 pts), FSW (67/100), CLB/NCLC language levels, Canadian provinces, Super Visa/sibling rules, and $ CAD settlement funds.',
-    variablesNoteAr:
-      'تم الحساب وفق متغيرات كندا حصراً: نقاط CRS (من 1200)، شبكة FSW (67/100)، مستويات CLB/NCLC، المقاطعات الكندية، شروط الأقارب (الأخ/الأخت/الأبوين/الأجداد)، والمدخرات بالدولار الكندي ($ CAD).',
+    authorityEn: 'IRCC — Government of Canada',
+    authorityAr: 'وزارة الهجرة الكندية الرسمية (IRCC)',
+    lawEn: 'IRPA / IRPR',
+    lawAr: 'قانون الهجرة الكندي (IRPA)',
+    variablesNoteEn: '',
+    variablesNoteAr: '',
     accent: '#be123c',
-    bg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
+    bg: '#fff1f2',
     border: '#fecdd3',
     links: [
       {
-        labelEn: 'IRCC Official Immigration Portal',
-        labelAr: 'بوابة الهجرة الكندية الرسمية IRCC',
+        labelEn: 'IRCC Official Portal',
+        labelAr: 'بوابة الهجرة الكندية IRCC',
         url: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada.html',
         domain: 'canada.ca',
       },
       {
-        labelEn: 'Official CRS Points Calculator',
+        labelEn: 'Official CRS Calculator',
         labelAr: 'حاسبة نقاط CRS الرسمية',
         url: 'https://ircc.canada.ca/english/immigrate/skilled/crs-tool.asp',
         domain: 'ircc.canada.ca',
       },
       {
-        labelEn: 'Express Entry Official Draws',
-        labelAr: 'نتائج سحوبات Express Entry الرسمية',
+        labelEn: 'Express Entry Draws',
+        labelAr: 'سحوبات Express Entry الرسمية',
         url: 'https://www.canada.ca/en/immigration-refugees-citizenship/corporate/mandate/policies-operational-instructions-agreements/ministerial-instructions/express-entry-rounds.html',
         domain: 'canada.ca',
       },
@@ -85,39 +83,37 @@ const COUNTRY_VERIFICATION_META: Record<
     shortNameAr: 'ألمانيا',
     nameEn: 'Germany',
     nameAr: 'ألمانيا',
-    authorityEn: 'Federal Government Portal (Make it in Germany) & Federal Office BAMF',
-    authorityAr: 'البوابة الفيدرالية الرسمية (Make it in Germany) والمكتب الاتحادي للهجرة واللاجئين (BAMF)',
-    lawEn: 'German Residence Act (Aufenthaltsgesetz — AufenthG §§ 16–36) & Skilled Immigration Act (FEG)',
-    lawAr: 'قانون الإقامة الألماني (AufenthG §§ 16–36) وقانون هجرة العمالة الماهرة المحدث 2026',
-    variablesNoteEn:
-      'Evaluated using Germany-only variables: Chancenkarte points (min 6 pts), ANABIN/ZAB degree recognition, 2026 EU Blue Card salary thresholds (€50,700 / €45,934.20), German CEFR (A1–C1), § 36 AufenthG family rules, and € EUR Blocked Account (€11,904–€12,324).',
-    variablesNoteAr:
-      'تم الحساب وفق متغيرات ألمانيا حصراً: نقاط بطاقة الفرص Chancenkarte (الحد الأدنى 6 نقاط)، معادلة الشهادات ANABIN/ZAB، رواتب البطاقة الزرقاء لعام 2026 (50,700€ / 45,934€)، اللغة الألمانية (A1–C1)، قانون لم الشمل (§ 36 AufenthG)، والحساب المغلق باليورو (€ EUR).',
+    authorityEn: 'Make it in Germany & BAMF',
+    authorityAr: 'البوابة الفيدرالية الألمانية والمكتب الاتحادي BAMF',
+    lawEn: 'AufenthG §§ 16–36 & FEG',
+    lawAr: 'قانون الإقامة الألماني AufenthG',
+    variablesNoteEn: '',
+    variablesNoteAr: '',
     accent: '#b45309',
-    bg: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+    bg: '#fffbeb',
     border: '#fde68a',
     links: [
       {
-        labelEn: 'Make it in Germany (Official Federal Portal)',
-        labelAr: 'بوابة الحكومة الألمانية الرسمية (Make it in Germany)',
+        labelEn: 'Make it in Germany Portal',
+        labelAr: 'بوابة Make it in Germany الرسمية',
         url: 'https://www.make-it-in-germany.com/en/',
         domain: 'make-it-in-germany.com',
       },
       {
-        labelEn: 'Chancenkarte (Opportunity Card) Official Page',
-        labelAr: 'صفحة بطاقة الفرص Chancenkarte الرسمية',
+        labelEn: 'Chancenkarte Official Page',
+        labelAr: 'صفحة بطاقة الفرص Chancenkarte',
         url: 'https://www.make-it-in-germany.com/en/visa-residence/types/job-search-opportunity-card',
         domain: 'make-it-in-germany.com',
       },
       {
-        labelEn: 'EU Blue Card 2026 Salary Thresholds',
-        labelAr: 'رواتب وشروط البطاقة الزرقاء الأوروبية 2026',
+        labelEn: 'EU Blue Card Germany',
+        labelAr: 'البطاقة الزرقاء الأوروبية',
         url: 'https://www.make-it-in-germany.com/en/visa-residence/types/eu-blue-card',
         domain: 'make-it-in-germany.com',
       },
       {
-        labelEn: 'BAMF — Federal Office for Migration & Refugees',
-        labelAr: 'المكتب الاتحادي للهجرة واللاجئين BAMF',
+        labelEn: 'BAMF Federal Office',
+        labelAr: 'المكتب الاتحادي BAMF',
         url: 'https://www.bamf.de/EN/Startseite/startseite_node.html',
         domain: 'bamf.de',
       },
@@ -129,39 +125,37 @@ const COUNTRY_VERIFICATION_META: Record<
     shortNameAr: 'أمريكا',
     nameEn: 'United States',
     nameAr: 'الولايات المتحدة (أمريكا)',
-    authorityEn: 'U.S. Citizenship and Immigration Services (USCIS — uscis.gov) & DHS',
-    authorityAr: 'دائرة خدمات الهجرة والجنسية الأمريكية الرسمية (USCIS — uscis.gov) ووزارة الأمن الداخلي DHS',
-    lawEn: 'U.S. Immigration and Nationality Act (INA) & Title 8 Code of Federal Regulations (8 CFR)',
-    lawAr: 'قانون الهجرة والجنسية الأمريكي الفيدرالي (INA) واللوائح الفيدرالية (8 CFR)',
-    variablesNoteEn:
-      'Evaluated using US-only variables: DV Lottery country of birth, EB-2 NIW (Matter of Dhanasar) & EB-1A/O-1 extraordinary criteria, H-1B Cap vs. Cap-Exempt sponsorship, Form I-130 Immediate Relatives vs. Family Preference, and $ USD investment/study funds.',
-    variablesNoteAr:
-      'تم الحساب وفق متغيرات أمريكا حصراً: بلد الميلاد للوتري DV، معايير الإعفاء الوطني EB-2 NIW والقدرات الفائقة EB-1A/O-1، عروض عمل H-1B و Cap-Exempt، فئات القرابة الفورية Form I-130، والمدخرات بالدولار الأمريكي ($ USD).',
+    authorityEn: 'USCIS & U.S. Department of Homeland Security',
+    authorityAr: 'دائرة الهجرة والجنسية الأمريكية الرسمية (USCIS)',
+    lawEn: 'INA & 8 CFR',
+    lawAr: 'قانون الهجرة الأمريكي (INA)',
+    variablesNoteEn: '',
+    variablesNoteAr: '',
     accent: '#1d4ed8',
-    bg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+    bg: '#eff6ff',
     border: '#bfdbfe',
     links: [
       {
-        labelEn: 'USCIS Official Government Portal',
-        labelAr: 'الموقع الرسمي لدائرة الهجرة الأمريكية USCIS',
+        labelEn: 'USCIS Official Portal',
+        labelAr: 'الموقع الرسمي لدائرة الهجرة USCIS',
         url: 'https://www.uscis.gov',
         domain: 'uscis.gov',
       },
       {
-        labelEn: 'Green Card Eligibility Categories',
-        labelAr: 'فئات الأهلية للجرين كارد الأمريكي',
+        labelEn: 'Green Card Categories',
+        labelAr: 'فئات الجرين كارد الرسمي',
         url: 'https://www.uscis.gov/green-card/green-card-eligibility-categories',
         domain: 'uscis.gov',
       },
       {
-        labelEn: 'Permanent Workers (EB-1 / EB-2 NIW / EB-3 / EB-5)',
-        labelAr: 'تأشيرات العمل الدائمة (EB-1 / EB-2 NIW / EB-3 / EB-5)',
+        labelEn: 'Permanent Workers (EB-1 / EB-2 NIW)',
+        labelAr: 'تأشيرات العمل الدائمة EB-1 / EB-2 NIW',
         url: 'https://www.uscis.gov/working-in-the-united-states/permanent-workers',
         domain: 'uscis.gov',
       },
       {
-        labelEn: 'Official USCIS Fee Schedule (Form G-1055)',
-        labelAr: 'جدول رسوم الهجرة الأمريكية الرسمي G-1055',
+        labelEn: 'USCIS Fee Schedule (G-1055)',
+        labelAr: 'جدول الرسوم الرسمي G-1055',
         url: 'https://www.uscis.gov/g-1055',
         domain: 'uscis.gov',
       },
@@ -186,8 +180,6 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
 }) => {
   const isAr = lang === 'ar';
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'matching' | 'qualified' | 'conditional' | 'all'>('matching');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const activeCountry: TargetCountry =
     profile?.activeCountry ??
@@ -214,6 +206,31 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
     (o) => !isClosedOrPaused(o) && (o.status === 'possible' || o.status === 'close'),
   ).length;
   const matchingCount = qualifiedCount + conditionalCount;
+
+  const [activeTab, setActiveTab] = useState<'qualified' | 'matching' | 'conditional' | 'all'>(() =>
+    qualifiedCount > 0 ? 'qualified' : 'matching',
+  );
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Brief loading screen before revealing what the user qualifies for
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadProgress, setLoadProgress] = useState(20);
+
+  useEffect(() => {
+    setIsLoading(true);
+    setLoadProgress(25);
+    setActiveTab(qualifiedCount > 0 ? 'qualified' : 'matching');
+
+    const t1 = setTimeout(() => setLoadProgress(68), 260);
+    const t2 = setTimeout(() => setLoadProgress(100), 560);
+    const t3 = setTimeout(() => setIsLoading(false), 820);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [activeCountry]);
 
   const filtered = countryFilteredOutcomes.filter((o) => {
     if (searchTerm.trim() !== '') {
@@ -754,135 +771,141 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
   const bestOption = filtered.length > 0 ? filtered[0] : null;
   const remainingOptions = filtered.length > 1 ? filtered.slice(1) : [];
 
-  return (
-    <div className="results-wrapper">
-      {/* Official Government Verification & Single-Country Context Banner */}
+  // Animated Loading Screen before showing results
+  if (isLoading) {
+    return (
       <div
+        className="results-wrapper"
         style={{
-          background: vMeta.bg,
-          border: `1.5px solid ${vMeta.border}`,
-          borderRadius: 20,
-          padding: '16px 20px',
-          marginBottom: 16,
+          minHeight: '65vh',
           display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '40px 16px',
         }}
       >
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 10,
+            maxWidth: 500,
+            width: '100%',
+            background: 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(16px)',
+            border: `2px solid ${vMeta.border}`,
+            borderRadius: 28,
+            padding: '42px 32px',
+            textAlign: 'center',
+            boxShadow: '0 20px 45px -10px rgba(15, 23, 42, 0.12)',
+            animation: 'cardEnter 0.35s ease-out forwards',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <CountryFlag code={vMeta.code} size={28} />
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <h2 style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', margin: 0 }}>
-                  {isAr
-                    ? `نتائج الهجرة الرسمية إلى ${vMeta.nameAr} فقط`
-                    : `Official Immigration Results for ${vMeta.nameEn} Only`}
-                </h2>
-                <span
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 800,
-                    background: '#dcfce7',
-                    color: '#166534',
-                    padding: '3px 10px',
-                    borderRadius: 999,
-                    border: '1px solid #86efac',
-                  }}
-                >
-                  ✓ {isAr ? 'موثق من المصدر الحكومي 2026' : 'Verified Official Gov Data 2026'}
-                </span>
-              </div>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: '#334155', marginTop: 2 }}>
-                🏛️ {isAr ? vMeta.authorityAr : vMeta.authorityEn}
-              </div>
-            </div>
+          <div
+            style={{
+              width: 76,
+              height: 76,
+              borderRadius: 22,
+              background: vMeta.bg,
+              border: `2px solid ${vMeta.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 18px auto',
+              boxShadow: '0 8px 18px -4px rgba(0,0,0,0.06)',
+            }}
+          >
+            <CountryFlag code={vMeta.code} size={42} />
           </div>
 
-          {/* Switch to another country's tailored questions */}
-          {onSelectCountry && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>
-                {isAr ? 'فحص دولة أخرى (بأسئلتها الخاصة):' : 'Evaluate another country:'}
-              </span>
-              {(['CA', 'DE', 'US'] as TargetCountry[])
-                .filter((code) => code !== activeCountry)
-                .map((code) => {
-                  const other = COUNTRY_VERIFICATION_META[code];
-                  return (
-                    <button
-                      key={code}
-                      type="button"
-                      onClick={() => onSelectCountry(code)}
-                      style={{
-                        background: '#ffffff',
-                        border: '1.5px solid #cbd5e1',
-                        borderRadius: 999,
-                        padding: '5px 12px',
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: '#1e293b',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                      }}
-                    >
-                      <CountryFlag code={other.code} size={15} />
-                      <span>
-                        {isAr ? `أسئلة ${other.shortNameAr}` : `${other.shortNameEn} Questions`}
-                      </span>
-                    </button>
-                  );
-                })}
-            </div>
-          )}
-        </div>
-
-        <div style={{ fontSize: 12.5, color: '#475569', fontWeight: 600, lineHeight: 1.5 }}>
-          {isAr ? vMeta.variablesNoteAr : vMeta.variablesNoteEn}
-        </div>
-
-        {/* Official Government Verification Links Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color: '#0f172a' }}>
-            {isAr ? 'روابط التحقق الحكومية المباشرة:' : 'Direct Official Gov Verification Links:'}
-          </span>
-          {vMeta.links.map((lk, idx) => (
-            <a
-              key={idx}
-              href={lk.url}
-              target="_blank"
-              rel="noopener noreferrer"
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+              color: '#065f46',
+              padding: '4px 12px',
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: 800,
+              marginBottom: 12,
+            }}
+          >
+            <span
               style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: vMeta.accent,
-                background: '#ffffff',
-                border: `1px solid ${vMeta.border}`,
-                padding: '4px 10px',
-                borderRadius: 999,
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
+                display: 'inline-block',
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                background: '#10b981',
               }}
-            >
-              <span>{isAr ? lk.labelAr : lk.labelEn}</span>
-              <span style={{ fontSize: 10.5, opacity: 0.75 }}>({lk.domain}) ↗</span>
-            </a>
-          ))}
+            />
+            <span>
+              {isAr
+                ? `نظام التحقق الرسمي 2026: ${vMeta.nameAr}`
+                : `Official 2026 Evaluation: ${vMeta.nameEn}`}
+            </span>
+          </div>
+
+          <h2 style={{ fontSize: 21, fontWeight: 900, color: '#0f172a', marginBottom: 8 }}>
+            {isAr ? 'جاري فحص المسارات المؤهل لها...' : 'Evaluating what you qualify for...'}
+          </h2>
+
+          <p
+            style={{
+              fontSize: 13.5,
+              color: '#64748b',
+              fontWeight: 600,
+              lineHeight: 1.55,
+              marginBottom: 24,
+            }}
+          >
+            {isAr
+              ? `نقوم بمطابقة إجاباتك مع شروط ${vMeta.authorityAr} وقوانين الهجرة الرسمية لفرز البرامج المؤهل لها.`
+              : `Matching your answers directly against official ${vMeta.authorityEn} rules to determine your qualified programs.`}
+          </p>
+
+          {/* Progress Bar */}
+          <div
+            style={{
+              width: '100%',
+              height: 10,
+              background: '#e2e8f0',
+              borderRadius: 999,
+              overflow: 'hidden',
+              marginBottom: 10,
+            }}
+          >
+            <div
+              style={{
+                width: `${loadProgress}%`,
+                height: '100%',
+                background: `linear-gradient(90deg, ${vMeta.accent}, #10b981)`,
+                borderRadius: 999,
+                transition: 'width 0.28s ease',
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: 12,
+              fontWeight: 700,
+              color: '#94a3b8',
+            }}
+          >
+            <span>{isAr ? 'فرز برامج الأهلية المباشرة' : 'Sorting qualified pathways'}</span>
+            <span style={{ color: vMeta.accent }}>{loadProgress}%</span>
+          </div>
         </div>
       </div>
+    );
+  }
 
+  return (
+    <div className="results-wrapper">
+      {/* Top Filter & Search Bar with Qualified Tab First */}
       <div className="results-top-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flex: 1 }}>
           <button
@@ -919,13 +942,6 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
         <div className="results-tab-group">
           <button
             type="button"
-            onClick={() => setActiveTab('matching')}
-            className={`results-tab ${activeTab === 'matching' ? 'active' : ''}`}
-          >
-            {isAr ? `مناسب (${matchingCount})` : `Relevant (${matchingCount})`}
-          </button>
-          <button
-            type="button"
             onClick={() => setActiveTab('qualified')}
             className={`results-tab ${activeTab === 'qualified' ? 'active' : ''}`}
           >
@@ -940,6 +956,13 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab('matching')}
+            className={`results-tab ${activeTab === 'matching' ? 'active' : ''}`}
+          >
+            {isAr ? `مناسب (${matchingCount})` : `Relevant (${matchingCount})`}
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('all')}
             className={`results-tab ${activeTab === 'all' ? 'active' : ''}`}
           >
@@ -948,22 +971,187 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
         </div>
       </div>
 
-      {/* 1. Spacious Hero Section for #1 Best Option */}
-      {bestOption && renderBestHero(bestOption)}
+      {/* Qualified / Filtered Options Displayed at the Top */}
+      {filtered.length === 0 ? (
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1.5px dashed #cbd5e1',
+            borderRadius: 20,
+            padding: '36px 20px',
+            textAlign: 'center',
+            color: '#64748b',
+            margin: '20px 0',
+          }}
+        >
+          <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
+          <h3 style={{ fontSize: 17, fontWeight: 800, color: '#1e293b', marginBottom: 6 }}>
+            {isAr ? 'لا توجد مسارات مطابقة لهذا الفلتر' : 'No pathways match this filter'}
+          </h3>
+          <p style={{ fontSize: 13.5, marginBottom: 16 }}>
+            {isAr
+              ? 'جرّب الانتقال إلى تبويب "مشروط" أو "الكل" لرؤية البرامج الأخرى المتاحة لك.'
+              : 'Try switching to the "Conditional" or "All" tab to see other programs available to you.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => setActiveTab('conditional')}
+            style={{
+              background: '#4f46e5',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: 999,
+              padding: '8px 20px',
+              fontSize: 13,
+              fontWeight: 800,
+              cursor: 'pointer',
+            }}
+          >
+            {isAr ? 'عرض المسارات المشروطة' : 'View Conditional Pathways'}
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* 1. Best Option Hero Section */}
+          {bestOption && renderBestHero(bestOption)}
 
-      {/* 2. Distinct Dark-Neon AI Spotlight Section right under the Best Option */}
+          {/* 2. Wide Multi-Column Grid for Remaining Qualified / Filtered Programs */}
+          {remainingOptions.length > 0 && (
+            <div className="pathway-grid-wide">
+              {remainingOptions.map((item) => renderGridCard(item))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* 3. AI Case Advisor Section right under the pathway options */}
       <AiCaseAssistant
         profile={profile ?? {}}
         outcomes={countryFilteredOutcomes}
         lang={lang}
       />
 
-      {/* 3. Wide Multi-Column Grid for Remaining Programs */}
-      {remainingOptions.length > 0 && (
-        <div className="pathway-grid-wide">
-          {remainingOptions.map((item) => renderGridCard(item))}
+      {/* 4. Direct Official Government Verification Links - Simple, Clean & at the End */}
+      <div
+        style={{
+          marginTop: 24,
+          padding: '16px 20px',
+          background: '#ffffff',
+          border: `1.5px solid ${vMeta.border}`,
+          borderRadius: 20,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 10,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <CountryFlag code={vMeta.code} size={24} />
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 14, fontWeight: 900, color: '#0f172a' }}>
+                  {isAr
+                    ? `مصادر التحقق الحكومية الرسمية (${vMeta.nameAr})`
+                    : `Official Government Verification (${vMeta.nameEn})`}
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    background: '#dcfce7',
+                    color: '#166534',
+                    padding: '2px 8px',
+                    borderRadius: 999,
+                    border: '1px solid #86efac',
+                  }}
+                >
+                  ✓ {isAr ? 'معتمد 2026' : 'Official 2026'}
+                </span>
+              </div>
+              <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                🏛️ {isAr ? vMeta.authorityAr : vMeta.authorityEn}
+              </span>
+            </div>
+          </div>
+
+          {/* Quick country switcher */}
+          {onSelectCountry && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 11.5, color: '#64748b', fontWeight: 700 }}>
+                {isAr ? 'فحص دولة أخرى:' : 'Check another country:'}
+              </span>
+              {(['CA', 'DE', 'US'] as TargetCountry[])
+                .filter((code) => code !== activeCountry)
+                .map((code) => {
+                  const other = COUNTRY_VERIFICATION_META[code];
+                  return (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => onSelectCountry(code)}
+                      style={{
+                        background: other.bg,
+                        border: `1px solid ${other.border}`,
+                        borderRadius: 999,
+                        padding: '4px 10px',
+                        fontSize: 11.5,
+                        fontWeight: 800,
+                        color: other.accent,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                      }}
+                    >
+                      <CountryFlag code={other.code} size={13} />
+                      <span>{isAr ? other.shortNameAr : other.shortNameEn}</span>
+                    </button>
+                  );
+                })}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Links row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: '#334155' }}>
+            {isAr ? 'الروابط المباشرة:' : 'Direct Official Links:'}
+          </span>
+          {vMeta.links.map((lk, idx) => (
+            <a
+              key={idx}
+              href={lk.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: vMeta.accent,
+                background: vMeta.bg,
+                border: `1px solid ${vMeta.border}`,
+                padding: '4px 12px',
+                borderRadius: 999,
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+              }}
+            >
+              <span>{isAr ? lk.labelAr : lk.labelEn}</span>
+              <span style={{ fontSize: 10.5, opacity: 0.7 }}>({lk.domain}) ↗</span>
+            </a>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
