@@ -298,27 +298,28 @@ button {
   box-shadow: 0 16px 34px -6px rgba(79, 70, 229, 0.52);
 }
 
-/* Colorful Skip All Button */
+/* Uncolored Subtle Skip All Button */
 .btn-skip-colorful {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   margin-top: 14px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border: none;
-  color: white;
-  font-size: 15px;
-  font-weight: 800;
-  padding: 13px 28px;
+  background: transparent;
+  border: 1.5px solid #cbd5e1;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 22px;
   border-radius: 999px;
-  box-shadow: 0 8px 22px -4px rgba(16, 185, 129, 0.38);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: none;
+  transition: all 0.18s ease;
 }
 
 .btn-skip-colorful:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 12px 28px -4px rgba(16, 185, 129, 0.5);
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
 }
 
 /* ──────────────── HEADER ──────────────── */
@@ -774,19 +775,12 @@ button {
   box-shadow: 0 14px 28px -6px rgba(79, 70, 229, 0.55);
 }
 
-/* ──────────────── WIDE MULTI-COLUMN GRID FOR REMAINING PATHWAYS ──────────────── */
+/* ──────────────── WIDE PATHWAY LIST WITH 2-COLUMN EXPANDED DETAILS ──────────────── */
 .pathway-grid-wide {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   margin-top: 24px;
-  align-items: start;
-}
-
-@media (max-width: 640px) {
-  .pathway-grid-wide {
-    grid-template-columns: 1fr;
-  }
 }
 
 .clean-pathway-card {
@@ -799,27 +793,27 @@ button {
 
 .clean-pathway-card:hover {
   border-color: #818cf8;
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   box-shadow: 0 14px 30px -10px rgba(79, 70, 229, 0.14);
 }
 
 .clean-pathway-header {
-  padding: 22px 24px;
+  padding: 22px 28px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   cursor: pointer;
   background: white;
   flex-wrap: wrap;
 }
 
 .clean-pathway-title {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 800;
   color: #0f172a;
   line-height: 1.4;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 /* Colorful Badges */
@@ -872,12 +866,12 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 8px 14px;
+  padding: 9px 16px;
   background: #eef2ff;
   border: 1.5px solid #c7d2fe;
   color: #3730a3 !important;
   border-radius: 12px;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 800;
   white-space: nowrap;
   transition: all 0.16s ease;
@@ -891,12 +885,20 @@ button {
 
 .clean-pathway-body {
   border-top: 1px solid #e2e8f0;
-  padding: 22px 24px 26px;
+  padding: 24px 28px 28px;
   background: #f8fafc;
   animation: fadeIn 0.2s ease forwards;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 640px) {
+  .clean-pathway-body {
+    grid-template-columns: 1fr;
+    padding: 18px 18px 22px;
+  }
 }
 
 .detail-section {
