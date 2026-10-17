@@ -318,10 +318,21 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
 
         <button
           type="button"
-          onClick={onViewResults}
-          className="btn-results-pill"
+          onClick={goNext}
+          className="step-nav-btn"
+          style={{
+            borderColor: '#a5b4fc',
+            color: '#4f46e5',
+            background: '#eef2ff',
+          }}
         >
-          {isAr ? `تخطي الكل (${totalMatches}) →` : `Skip All (${totalMatches}) →`}
+          {currentStepIndex === activeSteps.length - 1
+            ? isAr
+              ? 'النتائج →'
+              : 'Results →'
+            : isAr
+            ? 'التالي →'
+            : 'Next →'}
         </button>
       </div>
 
@@ -1289,7 +1300,7 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
           )}
         </div>
 
-        <div className="step-card-footer" style={{ flexWrap: 'wrap', gap: 12 }}>
+        <div className="step-card-footer">
           <button
             type="button"
             onClick={goPrev}
@@ -1303,43 +1314,43 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
               cursor: currentStepIndex === 0 ? 'default' : 'pointer',
             }}
           >
-            {isAr ? '→ السابق' : '← Back'}
+            {isAr ? '← السابق' : '← Back'}
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
-            {currentStepIndex < activeSteps.length - 1 && (
-              <button
-                type="button"
-                onClick={goNext}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#64748b',
-                  fontSize: 14.5,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                {isAr ? 'تخطي السؤال' : 'Skip question'}
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={onViewResults}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--accent)',
-                fontSize: 14.5,
-                fontWeight: 800,
-                cursor: 'pointer',
-              }}
-            >
-              {isAr ? 'تخطي كل الأسئلة ←' : 'Skip all questions →'}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={goNext}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--accent)',
+              fontSize: 14.5,
+              fontWeight: 800,
+              cursor: 'pointer',
+            }}
+          >
+            {currentStepIndex === activeSteps.length - 1
+              ? isAr
+                ? 'النتائج →'
+                : 'Results →'
+              : isAr
+              ? 'التالي →'
+              : 'Next →'}
+          </button>
         </div>
+      </div>
+
+      <div style={{ textAlign: 'center', marginTop: 22 }}>
+        <button
+          type="button"
+          onClick={onViewResults}
+          className="btn-results-pill"
+          style={{ padding: '11px 24px', fontSize: 14.5 }}
+        >
+          {isAr
+            ? `تخطي كل الأسئلة (${totalMatches}) ⏭`
+            : `Skip all questions (${totalMatches}) ⏭`}
+        </button>
       </div>
     </div>
   );
