@@ -58,10 +58,13 @@ export function normalizeProfile(input: Profile): Profile {
 export function evaluateAll(input: Profile, programs: Program[] = ALL_PROGRAMS): Outcome[] {
   const p = normalizeProfile(input);
   const goals: Goal[] = p.goals ?? [];
+  const selectedCountries = p.targetCountries && p.targetCountries.length > 0 ? p.targetCountries : ['CA', 'DE', 'US'];
   const out: Outcome[] = [];
 
   for (const program of programs) {
     try {
+      const progCountry = program.country ?? 'CA';
+      if (!selectedCountries.includes(progCountry)) continue;
       if (program.appliesTo && !program.appliesTo(p)) continue;
       const result = program.evaluate(p);
       const isClosedOrPaused = program.availability === 'closed' || program.availability === 'paused';

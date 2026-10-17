@@ -155,10 +155,14 @@ export type BusinessPlan = 'none' | 'idea' | 'designated_support' | 'existing_bu
 export type Criminality = 'none' | 'minor' | 'serious' | 'unsure';
 export type Medical = 'none' | 'condition' | 'unsure';
 export type PassportState = 'valid' | 'expired' | 'none';
+export type TargetCountry = 'CA' | 'DE' | 'US';
 
 // ───────────────────────────── The Profile ─────────────────────────────
 
 export interface Profile {
+  // ── Target destination countries selected by the user
+  targetCountries?: TargetCountry[];
+
   // ── About you
   age?: number;
   /** ISO 3166-1 alpha-2 codes, e.g. ['SY'] or ['IN','GB']. 'XX' = stateless. */
@@ -246,6 +250,8 @@ export interface Profile {
   // ── Language (Canadian Language Benchmark equivalents; 0 = no test / below CLB 4)
   englishCLB?: number;
   frenchCLB?: number;
+  /** German CEFR level: 0 = none, 1 = A1, 2 = A2, 3 = B1, 4 = B2, 5 = C1/C2 */
+  germanLevel?: number;
   /** Has a valid approved language test result (IELTS General, CELPIP, PTE Core, TEF, TCF). */
   languageTest?: 'valid' | 'none' | 'expired';
 
@@ -335,6 +341,8 @@ export interface Link {
 export interface Program {
   /** Unique kebab-case id, e.g. "ee-fsw". */
   id: string;
+  /** Destination country ('CA' | 'DE' | 'US'). Defaults to 'CA'. */
+  country?: TargetCountry;
   name: string;
   category: Category;
   kind: 'temporary' | 'permanent' | 'citizenship' | 'document';

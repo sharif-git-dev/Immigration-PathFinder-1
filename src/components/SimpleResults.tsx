@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import type { Outcome } from '../engine/evaluate';
-import type { Profile } from '../engine/types';
+import type { Profile, TargetCountry } from '../engine/types';
 import { calculateCRS } from '../engine/crs';
 import { calculateFSWPoints } from '../engine/fsw';
+import { calculateChancenkartePoints } from '../data/programs/germany';
 import {
   PROGRAM_AR,
   translateCRSLabel,
@@ -26,22 +27,31 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
 }) => {
   const isAr = lang === 'ar';
   const [searchTerm, setSearchTerm] = useState('');
+  const [countryFilter, setCountryFilter] = useState<'ALL' | TargetCountry>('ALL');
   const [activeTab, setActiveTab] = useState<'matching' | 'qualified' | 'conditional' | 'all'>('matching');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const crs = calculateCRS(profile ?? {});
   const fsw = calculateFSWPoints(profile ?? {});
+  const chancen = calculateChancenkartePoints(profile ?? {});
 
   const isClosedOrPaused = (o: Outcome) =>
     o.program.availability === 'closed' || o.program.availability === 'paused';
 
-  const qualifiedCount = outcomes.filter((o) => !isClosedOrPaused(o) && o.status === 'eligible').length;
-  const conditionalCount = outcomes.filter(
+  const countryFilteredOutcomes = outcomes.filter((o) => {
+    if (countryFilter === 'ALL') return true;
+    return (o.program.country ?? 'CA') === countryFilter;
+  });
+
+  const qualifiedCount = countryFilteredOutcomes.filter(
+    (o) => !isClosedOrPaused(o) && o.status === 'eligible',
+  ).length;
+  const conditionalCount = countryFilteredOutcomes.filter(
     (o) => !isClosedOrPaused(o) && (o.status === 'possible' || o.status === 'close'),
   ).length;
   const matchingCount = qualifiedCount + conditionalCount;
 
-  const filtered = outcomes.filter((o) => {
+  const filtered = countryFilteredOutcomes.filter((o) => {
     if (searchTerm.trim() !== '') {
       const q = searchTerm.toLowerCase();
       const ar = PROGRAM_AR[o.program.id];
@@ -60,15 +70,48 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
       return !isClosedOrPaused(o) && (o.status === 'possible' || o.status === 'close');
     }
     if (activeTab === 'matching') {
-      return !isClosedOrPaused(o) && (o.status === 'eligible' || o.status === 'possible' || o.status === 'close');
+      return (
+        !isClosedOrPaused(o) &&
+        (o.status === 'eligible' || o.status === 'possible' || o.status === 'close')
+      );
     }
     return true;
   });
+
+  const getCountryBadge = (countryCode?: TargetCountry) => {
+    const code = countryCode ?? 'CA';
+    if (code === 'DE') {
+      return {
+        flag: '🇩🇪',
+        label: isAr ? 'ألمانيا' : 'Germany',
+        bg: '#fef3c7',
+        color: '#92400e',
+        border: '#fde68a',
+      };
+    }
+    if (code === 'US') {
+      return {
+        flag: '🇺🇸',
+        label: isAr ? 'أمريكا' : 'USA',
+        bg: '#dbeafe',
+        color: '#1e40af',
+        border: '#bfdbfe',
+      };
+    }
+    return {
+      flag: '🍁',
+      label: isAr ? 'كندا' : 'Canada',
+      bg: '#ffe4e6',
+      color: '#9f1239',
+      border: '#fecdd3',
+    };
+  };
 
   const renderExpandedDetails = (item: Outcome) => {
     const { program, result } = item;
     const closed = program.availability === 'closed' || program.availability === 'paused';
     const arData = PROGRAM_AR[program.id];
+    const progCountry = program.country ?? 'CA';
 
     const displaySummary = isAr && arData ? arData.summary : program.summary;
     const displayAvailNote =
@@ -101,7 +144,7 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
         </div>
 
         <div className="detail-section">
-          <h4 className="detail-title">{isAr ? 'الشروط:' : 'Requirements:'}</h4>
+          <h4 className="detail-title">{isAr ? 'الشروط والأهلية:' : 'Requirements & Eligibility:'}</h4>
           <div className="check-list">
             {result.checks.map((check, i) => (
               <div key={i} className="check-item-row">
@@ -151,28 +194,31 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
           </div>
         </div>
 
-        {program.category === 'express_entry' && crs.breakdown && crs.breakdown.length > 0 && (
-          <div className="detail-score-box">
-            <h4 className="detail-title" style={{ color: '#581c87' }}>
-              CRS ({crs.total} / 1200)
-            </h4>
-            <div className="score-factor-grid">
-              {crs.breakdown.map((b, i) => (
-                <div key={i} className="score-factor-row">
-                  <span style={{ color: '#475569' }}>
-                    {isAr ? translateCRSLabel(b.label) : b.label}
-                  </span>
-                  <span style={{ fontWeight: 700, color: '#5b21b6' }}>{b.points}</span>
-                </div>
-              ))}
+        {progCountry === 'CA' &&
+          program.category === 'express_entry' &&
+          crs.breakdown &&
+          crs.breakdown.length > 0 && (
+            <div className="detail-score-box">
+              <h4 className="detail-title" style={{ color: '#581c87' }}>
+                🍁 CRS ({crs.total} / 1200)
+              </h4>
+              <div className="score-factor-grid">
+                {crs.breakdown.map((b, i) => (
+                  <div key={i} className="score-factor-row">
+                    <span style={{ color: '#475569' }}>
+                      {isAr ? translateCRSLabel(b.label) : b.label}
+                    </span>
+                    <span style={{ fontWeight: 700, color: '#5b21b6' }}>{b.points}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {program.id === 'ee-fsw' && (
           <div className="detail-fsw-box">
             <h4 className="detail-title" style={{ color: '#166534' }}>
-              FSW ({fsw.total} / 100)
+              🍁 FSW ({fsw.total} / 100)
             </h4>
             <div className="score-factor-grid">
               {fsw.factors.map((f, i) => (
@@ -189,9 +235,25 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
           </div>
         )}
 
+        {program.id === 'de-chancenkarte' && (
+          <div className="detail-fsw-box">
+            <h4 className="detail-title" style={{ color: '#166534' }}>
+              🇩🇪 Chancenkarte ({chancen.total} {isAr ? 'نقاط — الحد الأدنى 6' : 'pts — Min 6 required'})
+            </h4>
+            <div className="score-factor-grid">
+              {chancen.factors.map((f, i) => (
+                <div key={i} className="score-factor-row">
+                  <span style={{ color: '#475569' }}>{f.label}</span>
+                  <span style={{ fontWeight: 700, color: '#15803d' }}>+{f.points}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {displaySteps && displaySteps.length > 0 && (
           <div className="detail-section">
-            <h4 className="detail-title">{isAr ? 'الخطوات:' : 'Steps:'}</h4>
+            <h4 className="detail-title">{isAr ? 'خطوات التقديم:' : 'Application Steps:'}</h4>
             <ol className="steps-list">
               {displaySteps.map((step, idx) => (
                 <li key={idx}>{step}</li>
@@ -210,6 +272,24 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
                 </div>
               )}
             </div>
+
+            {program.links && program.links.length > 0 && (
+              <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {program.links.map((lk, idx) => (
+                  <a
+                    key={idx}
+                    href={lk.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="clean-link-btn"
+                    style={{ fontSize: 12 }}
+                  >
+                    <span>{lk.label}</span>
+                    <span>↗</span>
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -258,6 +338,7 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
     const isExpanded = expandedId === program.id;
     const arData = PROGRAM_AR[program.id];
     const { statusLabel, statusClass } = getStatusBadgeInfo(item);
+    const cBadge = getCountryBadge(program.country);
     const displayTitle = isAr && arData ? arData.name : program.name;
     const displaySummary = isAr && arData ? arData.summary : program.summary;
 
@@ -271,6 +352,16 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span className="best-hero-eyebrow">
                 {isAr ? '⭐ أفضل خيار لحالتك' : '⭐ #1 Best Option'}
+              </span>
+              <span
+                className="clean-badge"
+                style={{
+                  background: cBadge.bg,
+                  color: cBadge.color,
+                  border: `1px solid ${cBadge.border}`,
+                }}
+              >
+                {cBadge.flag} {cBadge.label}
               </span>
               <span className={`clean-badge ${statusClass}`}>{statusLabel}</span>
               {result.score && (
@@ -318,6 +409,7 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
     const isExpanded = expandedId === program.id;
     const arData = PROGRAM_AR[program.id];
     const { statusLabel, statusClass } = getStatusBadgeInfo(item);
+    const cBadge = getCountryBadge(program.country);
     const displayTitle = isAr && arData ? arData.name : program.name;
 
     return (
@@ -328,6 +420,16 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
         >
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span
+                className="clean-badge"
+                style={{
+                  background: cBadge.bg,
+                  color: cBadge.color,
+                  border: `1px solid ${cBadge.border}`,
+                }}
+              >
+                {cBadge.flag} {cBadge.label}
+              </span>
               <span className={`clean-badge ${statusClass}`}>{statusLabel}</span>
               {result.score && (
                 <span className="clean-badge badge-score">
@@ -347,7 +449,7 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
               onClick={(e) => e.stopPropagation()}
               className="clean-link-btn"
             >
-              <span>{isAr ? 'الرابط' : 'Link'}</span>
+              <span>{isAr ? 'الرابط الرسمي' : 'Official Link'}</span>
               <span>↗</span>
             </a>
 
@@ -369,6 +471,10 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
   const bestOption = filtered.length > 0 ? filtered[0] : null;
   const remainingOptions = filtered.length > 1 ? filtered.slice(1) : [];
 
+  const caCount = outcomes.filter((o) => (o.program.country ?? 'CA') === 'CA').length;
+  const deCount = outcomes.filter((o) => o.program.country === 'DE').length;
+  const usCount = outcomes.filter((o) => o.program.country === 'US').length;
+
   return (
     <div className="results-wrapper">
       <div className="results-top-bar">
@@ -383,11 +489,31 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
 
           <input
             type="text"
-            placeholder={isAr ? 'بحث...' : 'Search...'}
+            placeholder={isAr ? 'بحث في المسارات...' : 'Search pathways...'}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="results-search-input"
           />
+
+          {/* Country Filter Pills */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            {[
+              { id: 'ALL' as const, label: isAr ? '🌍 الكل' : '🌍 All', count: outcomes.length },
+              ...(caCount > 0 ? [{ id: 'CA' as const, label: isAr ? '🍁 كندا' : '🍁 Canada', count: caCount }] : []),
+              ...(deCount > 0 ? [{ id: 'DE' as const, label: isAr ? '🇩🇪 ألمانيا' : '🇩🇪 Germany', count: deCount }] : []),
+              ...(usCount > 0 ? [{ id: 'US' as const, label: isAr ? '🇺🇸 أمريكا' : '🇺🇸 USA', count: usCount }] : []),
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setCountryFilter(tab.id)}
+                className={`results-tab ${countryFilter === tab.id ? 'active' : ''}`}
+                style={{ fontSize: 12.5, padding: '6px 12px' }}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="results-tab-group">
@@ -417,7 +543,7 @@ export const SimpleResults: React.FC<SimpleResultsProps> = ({
             onClick={() => setActiveTab('all')}
             className={`results-tab ${activeTab === 'all' ? 'active' : ''}`}
           >
-            {isAr ? `الكل (${outcomes.length})` : `All (${outcomes.length})`}
+            {isAr ? `الكل (${countryFilteredOutcomes.length})` : `All (${countryFilteredOutcomes.length})`}
           </button>
         </div>
       </div>

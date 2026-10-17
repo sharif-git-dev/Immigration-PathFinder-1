@@ -41,6 +41,9 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
     });
   };
 
+  const hasCA = !profile.targetCountries || profile.targetCountries.length === 0 || profile.targetCountries.includes('CA');
+  const hasDE = !profile.targetCountries || profile.targetCountries.length === 0 || profile.targetCountries.includes('DE');
+
   const allSteps: StepConfig[] = [
     {
       id: 'residenceCountry',
@@ -76,9 +79,9 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
     {
       id: 'age',
       titleAr: 'العمر؟',
-      subtitleAr: 'أعلى نقاط عمر تكون بين 20 و29 سنة.',
+      subtitleAr: 'يؤثر على نقاط كندا (CRS) وبطاقة الفرص الألمانية (Chancenkarte <35).',
       titleEn: 'Age?',
-      subtitleEn: 'Max CRS age points are at ages 20–29.',
+      subtitleEn: 'Impacts Canada CRS & Germany Chancenkarte points (<35).',
     },
     {
       id: 'education',
@@ -93,79 +96,91 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
       subtitleAr: 'تمنحك +15 إلى +30 نقطة وتؤهلك لتصريح PGWP.',
       titleEn: 'Studied in Canada?',
       subtitleEn: 'Awards +15 to +30 CRS points and PGWP eligibility.',
+      showIf: () => hasCA,
     },
     {
       id: 'englishCLB',
-      titleAr: 'الإنجليزية (CLB)؟',
-      subtitleAr: 'معيار CLB المعادل لاختبار IELTS أو CELPIP.',
-      titleEn: 'English (CLB)?',
-      subtitleEn: 'CLB equivalent for IELTS or CELPIP.',
+      titleAr: 'الإنجليزية (CLB / IELTS)؟',
+      subtitleAr: 'تفتح مسارات كندا وأمريكا وبطاقة الفرص الألمانية (B2+).',
+      titleEn: 'English (CLB / IELTS)?',
+      subtitleEn: 'Unlocks Canada, USA & Germany Chancenkarte (B2+).',
+    },
+    {
+      id: 'germanLevel',
+      titleAr: 'اللغة الألمانية (🇩🇪)؟',
+      subtitleAr: 'تمنح حتى +3 نقاط في بطاقة الفرص وتفتح التدريب المهني Ausbildung.',
+      titleEn: 'German Level (🇩🇪)?',
+      subtitleEn: 'Awards up to +3 Chancenkarte points & unlocks Ausbildung.',
+      showIf: () => hasDE,
     },
     {
       id: 'frenchCLB',
       titleAr: 'الفرنسية (NCLC)؟',
-      subtitleAr: 'مستوى 7+ يفتح سحوبات الفرنسية بنقاط منخفضة (~390).',
+      subtitleAr: 'مستوى 7+ يفتح سحوبات كندا الفرنسية بنقاط منخفضة (~390).',
       titleEn: 'French (NCLC)?',
-      subtitleEn: 'NCLC 7+ unlocks low-cutoff French draws (~390).',
+      subtitleEn: 'NCLC 7+ unlocks low-cutoff Canadian French draws (~390).',
+      showIf: () => hasCA,
     },
     {
       id: 'foreignExpYears',
-      titleAr: 'الخبرة بالخارج؟',
-      subtitleAr: 'خبرة عمل ماهرة خلال آخر 10 سنوات.',
-      titleEn: 'Foreign work?',
-      subtitleEn: 'Skilled work within the last 10 years.',
+      titleAr: 'سنوات الخبرة المهنية؟',
+      subtitleAr: 'خبرة عمل ماهرة خلال آخر 5–10 سنوات (مهمة لكندا وألمانيا و EB-2 NIW بأمريكا).',
+      titleEn: 'Skilled work experience?',
+      subtitleEn: 'Crucial for Canada CRS, Germany Chancenkarte & US EB-2 NIW.',
     },
     {
       id: 'canadianExpYears',
-      titleAr: 'الخبرة بكندا؟',
+      titleAr: 'الخبرة داخل كندا؟',
       subtitleAr: 'خبرة عمل بتصريح قانوني داخل كندا.',
       titleEn: 'Canadian work?',
       subtitleEn: 'Authorized skilled work in Canada.',
+      showIf: () => hasCA,
     },
     {
       id: 'occupationFields',
-      titleAr: 'المهنة؟',
-      subtitleAr: 'سحوبات الفئات تتطلب 12 شهراً من الخبرة.',
-      titleEn: 'Occupation?',
-      subtitleEn: 'Category draws require 12+ months experience.',
+      titleAr: 'مجال المهنة؟',
+      subtitleAr: 'المهن المطلوبة تمنح نقاطاً إضافية في كندا وألمانيا وأمريكا.',
+      titleEn: 'Occupation field?',
+      subtitleEn: 'Shortage fields unlock priority draws in CA, DE & US.',
       isMulti: true,
     },
     {
       id: 'jobOffer',
-      titleAr: 'عرض عمل بكندا؟',
-      subtitleAr: 'مطلوب لتصاريح العمل وبرامج الأطلسي والريف.',
-      titleEn: 'Job offer?',
-      subtitleEn: 'Required for work permits & regional pilots.',
+      titleAr: 'عرض عمل رسمي؟',
+      subtitleAr: 'هل لديك عرض عمل من صاحب عمل في كندا أو ألمانيا أو أمريكا؟',
+      titleEn: 'Official job offer?',
+      subtitleEn: 'Do you hold a job offer in Canada, Germany, or the USA?',
     },
     {
       id: 'jobOfferProvince',
-      titleAr: 'مقاطعة العمل؟',
-      titleEn: 'Job province?',
-      showIf: (p) => p.jobOffer === 'yes',
+      titleAr: 'مقاطعة العمل بكندا؟',
+      titleEn: 'Canadian job province?',
+      showIf: (p) => hasCA && p.jobOffer === 'yes',
     },
     {
       id: 'relativesCitizenPR',
-      titleAr: 'أقارب بكندا؟',
-      subtitleAr: 'للكفالة العائلية أو +15 نقطة للأخ/الأخت.',
-      titleEn: 'Family in Canada?',
-      subtitleEn: 'For sponsorship or +15 sibling points.',
+      titleAr: 'أقارب بالخارج (مواطن / إقامة دائمة)؟',
+      subtitleAr: 'للكفالة العائلية ولم الشمل في كندا أو ألمانيا أو أمريكا.',
+      titleEn: 'Family abroad (Citizen / PR)?',
+      subtitleEn: 'For family reunification in Canada, Germany, or USA.',
       isMulti: true,
     },
     {
       id: 'relativesProvinces',
-      titleAr: 'مقاطعة الأقارب؟',
-      titleEn: 'Relatives province?',
+      titleAr: 'مقاطعة الأقارب بكندا؟',
+      titleEn: 'Relatives province in Canada?',
       isMulti: true,
       showIf: (p) =>
+        hasCA &&
         p.relativesCitizenPR !== undefined &&
         p.relativesCitizenPR.length > 0,
     },
     {
       id: 'fearOfReturn',
       titleAr: 'حماية / لجوء؟',
-      subtitleAr: 'لتقييم مسارات الكفالة الخاصة SAH أو المفوضية UNHCR.',
+      subtitleAr: 'لتقييم مسارات اللجوء وإعادة التوطين عبر المفوضية UNHCR أو الكفالة.',
       titleEn: 'Refugee protection?',
-      subtitleEn: 'For SAH sponsorship or UNHCR resettlement.',
+      subtitleEn: 'For asylum & UNHCR resettlement pathways (CA, DE, US).',
     },
     {
       id: 'refugeeBackground',
@@ -181,17 +196,17 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
     },
     {
       id: 'fundsCAD',
-      titleAr: 'المدخرات (CAD)؟',
-      subtitleAr: 'FSW يتطلب 15,263$ للفرد، والدراسة 23,448$.',
-      titleEn: 'Savings (CAD)?',
-      subtitleEn: '$15,263 for FSW (1 person), $23,448 for Study.',
+      titleAr: 'المدخرات المتوفرة (بالدولار الكندي CAD)؟',
+      subtitleAr: 'الحساب المغلق بألمانيا ~18,000$ CAD (11,904€–13,092€)، وكندا FSW 15,263$.',
+      titleEn: 'Available savings (in CAD)?',
+      subtitleEn: 'Germany Blocked Account ~18k CAD (€11.9k–€13.1k); Canada FSW $15,263.',
     },
     {
       id: 'admissibility',
       titleAr: 'السجل الجنائي؟',
-      subtitleAr: 'شرط أساسي لجميع التأشيرات الكندية.',
+      subtitleAr: 'شرط أساسي لجميع التأشيرات والإقامات الدائمة.',
       titleEn: 'Clean record?',
-      subtitleEn: 'Required for all Canadian visas and PR.',
+      subtitleEn: 'Required for visas and permanent residence.',
     },
   ];
 
@@ -815,6 +830,57 @@ export const StepSurvey: React.FC<StepSurveyProps> = ({
                   isAr ? opt.labelAr : opt.labelEn,
                   isAr ? opt.hintAr : opt.hintEn,
                   () => handleSingleSelect('englishCLB', opt.val),
+                ),
+              )}
+            </div>
+          )}
+
+          {/* 8b. German Ability */}
+          {currentStep.id === 'germanLevel' && (
+            <div className="option-list">
+              {[
+                {
+                  val: 0,
+                  labelAr: 'لا أتحدث الألمانية (أعتمد على الإنجليزية)',
+                  hintAr: 'يمكنك التقديم على البطاقة الزرقاء أو الدراسة بالإنجليزية أو بطاقة الفرص مع إنجليزي B2.',
+                  labelEn: 'No German (English only)',
+                  hintEn: 'Eligible for EU Blue Card, English degrees & Chancenkarte (with English B2).',
+                },
+                {
+                  val: 4,
+                  labelAr: 'متقدم فوق المتوسط (B2 أو C1/C2)',
+                  hintAr: 'يمنح +3 نقاط كاملة في بطاقة الفرص الألمانية ويفتح جميع مسارات العمل والتمريض.',
+                  labelEn: 'Upper-Intermediate / Advanced (B2 or C1+)',
+                  hintEn: 'Awards max +3 Chancenkarte points & unlocks regulated professions.',
+                },
+                {
+                  val: 3,
+                  labelAr: 'متوسط (B1)',
+                  hintAr: 'يمنح +2 نقطة في بطاقة الفرص، ويؤهلك للتدريب المهني المزدوج (Ausbildung) والجنسية الألمانية.',
+                  labelEn: 'Intermediate (B1)',
+                  hintEn: 'Awards +2 Chancenkarte points & qualifies for Ausbildung.',
+                },
+                {
+                  val: 2,
+                  labelAr: 'أساسي (A2)',
+                  hintAr: 'يمنح +1 نقطة في بطاقة الفرص ويؤهلك لشراكة المعادلة المهنية (Anerkennungspartnerschaft).',
+                  labelEn: 'Elementary (A2)',
+                  hintEn: 'Awards +1 Chancenkarte point & qualifies for Recognition Partnership.',
+                },
+                {
+                  val: 1,
+                  labelAr: 'مبتدئ (A1)',
+                  hintAr: 'يحقق الشرط الأساسي لبطاقة الفرص الألمانية ولم الشمل العائلي.',
+                  labelEn: 'Beginner (A1)',
+                  hintEn: 'Meets baseline language requirement for Chancenkarte & Family Visa.',
+                },
+              ].map((opt) =>
+                renderOptionWithBang(
+                  String(opt.val),
+                  (profile.germanLevel ?? 0) === opt.val,
+                  isAr ? opt.labelAr : opt.labelEn,
+                  isAr ? opt.hintAr : opt.hintEn,
+                  () => handleSingleSelect('germanLevel', opt.val),
                 ),
               )}
             </div>

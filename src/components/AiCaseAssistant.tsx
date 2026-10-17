@@ -109,14 +109,14 @@ export const AiCaseAssistant: React.FC<AiCaseAssistantProps> = ({
   const quickQuestions = isAr
     ? [
         'ما هو أفضل برنامج لحالتي؟',
+        'أيهما أسهل لي: كندا أم ألمانيا أم أمريكا؟',
         'كيف أرفع نقاطي؟',
-        'ما بديل برنامج EMPP؟',
         'ما هي الخطوة الأولى؟',
       ]
     : [
         'Best program for me?',
+        'Canada vs Germany vs USA for me?',
         'How to raise my score?',
-        'EMPP alternatives?',
         'First step to take?',
       ];
 
@@ -168,24 +168,24 @@ export const AiCaseAssistant: React.FC<AiCaseAssistantProps> = ({
     const recentHistory = nextMessages.slice(-2);
 
     const systemInstruction = isAr
-      ? `أنت مستشار هجرة كندا (قوانين 2026 الرسمية).
+      ? `أنت مستشار هجرة دولي لكندا وألمانيا والولايات المتحدة (قوانين 2026 الرسمية).
 حالة المستخدم:
 ${caseSummary}
 
 قواعد صارمة جداً:
 1. أجب باللغة العربية فقط.
-2. الرد يجب أن يكون جملتين قصيرتين فقط (أقل من 40 كلمة إجمالاً). ممنوع الإطالة أو المقدمات أو النصائح العامة.
+2. الرد يجب أن يكون جملتين قصيرتين فقط (أقل من 45 كلمة إجمالاً). ممنوع الإطالة أو المقدمات أو النصائح العامة.
 3. نص عادي فقط بدون أي رموز ماركداون مثل ** أو # أو قوائم طويلة.
-4. اذكر اسم البرنامج الأنسب من ملخص الحالة والخطوة العملية المباشرة فقط. (ملاحظة: EMPP مغلق في 2026، وكفالة G5 متوقفة، وكفالة SAH مفتوحة).`
-      : `You are a Canadian immigration advisor (official 2026 IRCC rules).
+4. اذكر اسم البرنامج والدولة الأنسب من ملخص الحالة والخطوة العملية المباشرة فقط.`
+      : `You are an international immigration advisor for Canada, Germany, and the United States (official 2026 rules).
 User case summary:
 ${caseSummary}
 
 STRICT RULES:
 1. Reply ONLY in English.
-2. Maximum 2 short sentences (under 40 words total). No intro, no filler, no disclaimers.
+2. Maximum 2 short sentences (under 45 words total). No intro, no filler, no disclaimers.
 3. Plain text ONLY — do NOT use markdown (** or #) or long numbered lists.
-4. Name the exact best-fitting program from the summary above and state the 1 concrete requirement/next step. (Note: EMPP is closed as of March 2026, G5 refugee sponsorship is paused, SAH sponsorship is open).`;
+4. Name the exact best-fitting program and country from the summary above and state the 1 concrete requirement/next step.`;
 
     try {
       const endpoint = proxyUrl || 'https://api.deepseek.com/chat/completions';

@@ -9,8 +9,10 @@ import { familyPrograms } from './family';
 import { refugeePrograms } from './refugee';
 import { humanitarianPrograms } from './humanitarian';
 import { citizenshipPrograms } from './citizenship';
+import { germanyPrograms } from './germany';
+import { usaPrograms } from './usa';
 
-export const ALL_PROGRAMS: Program[] = [
+export const canadaPrograms: Program[] = [
   ...citizenshipPrograms,
   ...expressEntryPrograms,
   ...provincialPrograms,
@@ -21,4 +23,13 @@ export const ALL_PROGRAMS: Program[] = [
   ...workPrograms,
   ...studyPrograms,
   ...visitPrograms,
+].map((p) => ({ ...p, country: p.country ?? 'CA' }));
+
+export const ALL_PROGRAMS: Program[] = [
+  ...canadaPrograms,
+  ...germanyPrograms,
+  ...usaPrograms,
 ];
+
+export { germanyPrograms, usaPrograms };
+
