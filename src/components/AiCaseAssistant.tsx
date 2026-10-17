@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Profile } from '../engine/types';
 import type { Outcome } from '../engine/evaluate';
 import { calculateCRS } from '../engine/crs';
 import { calculateFSWPoints } from '../engine/fsw';
 import { buildCaseSummaryForAI } from '../data/arabicTranslations';
-import { DEEPSEEK_API_KEY } from '../config';
+import {
+  DEEPSEEK_API_KEY,
+  DEEPSEEK_PROXY_URL,
+  DEEPSEEK_MODEL,
+  AI_MAX_QUESTIONS_PER_DAY,
+  AI_COOLDOWN_SECONDS,
+  AI_MAX_INPUT_CHARS,
+  AI_MAX_OUTPUT_TOKENS,
+} from '../config';
 
 interface AiCaseAssistantProps {
   profile: Profile;
@@ -15,6 +23,44 @@ interface AiCaseAssistantProps {
 interface ChatMessage {
   role: 'user' | 'assistant';
   text: string;
+}
+
+const RATE_LIMIT_STORAGE_KEY = 'canada_pathfinder_ai_daily_usage_v1';
+
+interface DailyUsage {
+  date: string;
+  count: number;
+}
+
+function getTodayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function loadDailyUsage(): DailyUsage {
+  const today = getTodayKey();
+  try {
+    const raw = localStorage.getItem(RATE_LIMIT_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as DailyUsage;
+      if (parsed.date === today && typeof parsed.count === 'number') {
+        return parsed;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return { date: today, count: 0 };
+}
+
+function incrementDailyUsage(): DailyUsage {
+  const current = loadDailyUsage();
+  const updated: DailyUsage = { date: current.date, count: current.count + 1 };
+  try {
+    localStorage.setItem(RATE_LIMIT_STORAGE_KEY, JSON.stringify(updated));
+  } catch {
+    // ignore
+  }
+  return updated;
 }
 
 function getApiKeyFromCode(): string {
@@ -42,10 +88,23 @@ export const AiCaseAssistant: React.FC<AiCaseAssistantProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [dailyUsed, setDailyUsed] = useState<number>(() => loadDailyUsage().count);
+  const [cooldownLeft, setCooldownLeft] = useState<number>(0);
+
+  useEffect(() => {
+    if (cooldownLeft <= 0) return;
+    const timer = setInterval(() => {
+      setCooldownLeft((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldownLeft]);
 
   const crs = calculateCRS(profile);
   const fsw = calculateFSWPoints(profile);
   const caseSummary = buildCaseSummaryForAI(profile, crs, fsw, outcomes);
+
+  const remainingQuestions = Math.max(0, AI_MAX_QUESTIONS_PER_DAY - dailyUsed);
+  const isQuotaReached = remainingQuestions <= 0;
 
   const quickQuestions = isAr
     ? [
@@ -62,15 +121,39 @@ export const AiCaseAssistant: React.FC<AiCaseAssistantProps> = ({
       ];
 
   const askAI = async (userPrompt: string) => {
-    const trimmedQuestion = userPrompt.trim();
+    const trimmedQuestion = userPrompt.trim().slice(0, AI_MAX_INPUT_CHARS);
     if (!trimmedQuestion) return;
 
-    const activeKey = getApiKeyFromCode();
-    if (!activeKey) {
+    // 1. Check daily limit
+    const currentUsage = loadDailyUsage();
+    setDailyUsed(currentUsage.count);
+    if (currentUsage.count >= AI_MAX_QUESTIONS_PER_DAY) {
       setErrorMsg(
         isAr
-          ? 'ضع مفتاح DeepSeek API في ملف src/config.ts'
-          : 'Add your DeepSeek API key in src/config.ts',
+          ? `وصلت للحد الأقصى اليومي (${AI_MAX_QUESTIONS_PER_DAY} أسئلة). حاول غداً.`
+          : `Daily limit reached (${AI_MAX_QUESTIONS_PER_DAY} questions/day). Try again tomorrow.`,
+      );
+      return;
+    }
+
+    // 2. Check cooldown
+    if (cooldownLeft > 0) {
+      setErrorMsg(
+        isAr
+          ? `يرجى الانتظار ${cooldownLeft} ثوانٍ قبل إرسال سؤال آخر.`
+          : `Please wait ${cooldownLeft}s before asking another question.`,
+      );
+      return;
+    }
+
+    const proxyUrl = DEEPSEEK_PROXY_URL.trim();
+    const activeKey = getApiKeyFromCode();
+
+    if (!proxyUrl && !activeKey) {
+      setErrorMsg(
+        isAr
+          ? 'المفتاح غير مضاف بعد (VITE_DEEPSEEK_API_KEY أو src/config.ts)'
+          : 'API key not configured yet.',
       );
       return;
     }
@@ -81,33 +164,42 @@ export const AiCaseAssistant: React.FC<AiCaseAssistantProps> = ({
     setQuestion('');
     setLoading(true);
 
+    // Only send last 2 messages to minimize token usage
+    const recentHistory = nextMessages.slice(-2);
+
     const systemInstruction = `أنت مستشار ذكي مختصر للهجرة إلى كندا (بيانات 2026 الرسمية من canada.ca).
-ملخص حالة المستخدم المحسوب تلقائياً:
+ملخص حالة المستخدم:
 ---
 ${caseSummary}
 ---
-قواعد:
+قواعد صارمة:
+- أجب فقط على الأسئلة المتعلقة بهجرة كندا وحالة المستخدم أعلاه. ارفض أي سؤال خارج موضوع هجرة كندا.
 - برنامج EMPP مغلق منذ مارس 2026، وكفالة الخمسة G5 متوقفة، وكفالة المنظمات SAH مفتوحة.
-- أجب باختصار شديد (3 إلى 4 نقاط قصيرة فقط) باللغة العربية بناءً على ملخص حالة المستخدم أعلاه مباشرة.`;
+- أجب باختصار شديد (3 نقاط قصيرة كحد أقصى).`;
 
     try {
-      const response = await fetch('https://api.deepseek.com/chat/completions', {
+      const endpoint = proxyUrl || 'https://api.deepseek.com/chat/completions';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (!proxyUrl && activeKey) {
+        headers.Authorization = `Bearer ${activeKey}`;
+      }
+
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${activeKey}`,
-        },
+        headers,
         body: JSON.stringify({
-          model: 'deepseek-chat',
+          model: DEEPSEEK_MODEL,
           messages: [
             { role: 'system', content: systemInstruction },
-            ...nextMessages.map((m) => ({
+            ...recentHistory.map((m) => ({
               role: m.role,
               content: m.text,
             })),
           ],
-          temperature: 0.3,
-          max_tokens: 350,
+          temperature: 0.2,
+          max_tokens: AI_MAX_OUTPUT_TOKENS,
           stream: false,
         }),
       });
@@ -122,6 +214,9 @@ ${caseSummary}
         data?.choices?.[0]?.message?.content?.trim() ||
         (isAr ? 'لا يوجد رد.' : 'No response.');
 
+      const updatedUsage = incrementDailyUsage();
+      setDailyUsed(updatedUsage.count);
+      setCooldownLeft(AI_COOLDOWN_SECONDS);
       setMessages((prev) => [...prev, { role: 'assistant', text: replyText }]);
     } catch (err: any) {
       setErrorMsg(err.message || 'API Error');
@@ -132,19 +227,38 @@ ${caseSummary}
 
   return (
     <div className="ai-assistant-card">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 20 }}>✨</span>
-        <h3 className="ai-assistant-title">
-          {isAr ? 'اسأل الذكاء الاصطناعي عن حالتك' : 'Ask AI'}
-        </h3>
-        <button
-          type="button"
-          onClick={() => setShowInfo((prev) => !prev)}
-          className={`info-bang-btn ${showInfo ? 'active' : ''}`}
-          title={isAr ? 'عرض ملخص حالتك المرسل للذكاء الاصطناعي' : 'Case summary'}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 20 }}>✨</span>
+          <h3 className="ai-assistant-title">
+            {isAr ? 'اسأل الذكاء الاصطناعي عن حالتك' : 'Ask AI'}
+          </h3>
+          <button
+            type="button"
+            onClick={() => setShowInfo((prev) => !prev)}
+            className={`info-bang-btn ${showInfo ? 'active' : ''}`}
+            title={isAr ? 'عرض ملخص حالتك المرسل للذكاء الاصطناعي' : 'Case summary'}
+          >
+            !
+          </button>
+        </div>
+
+        <span
+          className={`clean-badge ${isQuotaReached ? 'badge-ineligible' : 'badge-potential'}`}
+          title={isAr ? 'عدد الأسئلة المتبقية اليوم' : 'Remaining questions today'}
         >
-          !
-        </button>
+          {isAr
+            ? `${remainingQuestions} / ${AI_MAX_QUESTIONS_PER_DAY} أسئلة اليوم`
+            : `${remainingQuestions} / ${AI_MAX_QUESTIONS_PER_DAY} today`}
+        </span>
       </div>
 
       {showInfo && (
@@ -168,7 +282,7 @@ ${caseSummary}
           <button
             key={idx}
             type="button"
-            disabled={loading}
+            disabled={loading || isQuotaReached || cooldownLeft > 0}
             onClick={() => askAI(q)}
             className="ai-chip-btn"
           >
@@ -226,17 +340,32 @@ ${caseSummary}
         <input
           type="text"
           value={question}
+          maxLength={AI_MAX_INPUT_CHARS}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder={isAr ? 'اكتب سؤالك هنا...' : 'Ask a question...'}
+          placeholder={
+            isQuotaReached
+              ? isAr
+                ? 'انتهى الحد اليومي للأسئلة'
+                : 'Daily limit reached'
+              : isAr
+              ? `اكتب سؤالك هنا (حتى ${AI_MAX_INPUT_CHARS} حرفاً)...`
+              : `Ask a question (max ${AI_MAX_INPUT_CHARS} chars)...`
+          }
           className="results-search-input"
-          disabled={loading}
+          disabled={loading || isQuotaReached}
         />
         <button
           type="submit"
-          disabled={loading || !question.trim()}
+          disabled={loading || isQuotaReached || cooldownLeft > 0 || !question.trim()}
           className="btn-ai-send"
         >
-          {loading ? '...' : isAr ? 'إرسال' : 'Send'}
+          {loading
+            ? '...'
+            : cooldownLeft > 0
+            ? `${cooldownLeft}s`
+            : isAr
+            ? 'إرسال'
+            : 'Send'}
         </button>
       </form>
     </div>
